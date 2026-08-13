@@ -187,6 +187,7 @@
     td::before{content:attr(data-label);font-weight:800;color:var(--text-light);font-size:10.5px;text-transform:uppercase;}
   }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
 
@@ -494,7 +495,10 @@ function tabsFor(){
   const t=[];
   if(isBoss()) t.push({k:"dashboard",l:"Tổng quan"});
   t.push({k:"projects",l:isBoss()?"Dự án & Hồ sơ":"Dự án"});
+  if(isLeader()) t.push({k:"tasks",l:"Giao việc"});
   t.push({k:"mywork",l:"Việc của tôi"});
+  t.push({k:"files",l:"Kho file"});
+  if(isBoss()) t.push({k:"reports",l:"Báo cáo"});
   if(isBoss()) t.push({k:"staff",l:"Nhân viên"});
   if(isBoss()) t.push({k:"users",l:"Tài khoản"});
   t.push({k:"guide",l:"Hướng dẫn"});
@@ -514,7 +518,10 @@ function render(){
   const m=document.getElementById("mainArea");
   if(activeTab==="dashboard") m.innerHTML=viewDashboard();
   else if(activeTab==="projects") m.innerHTML=viewProjects();
+  else if(activeTab==="tasks") m.innerHTML=viewTasks();
   else if(activeTab==="mywork") m.innerHTML=viewMyWork();
+  else if(activeTab==="files") m.innerHTML=viewFiles();
+  else if(activeTab==="reports") m.innerHTML=viewReports();
   else if(activeTab==="staff") m.innerHTML=viewStaff();
   else if(activeTab==="users") m.innerHTML=viewUsers();
   else if(activeTab==="guide") m.innerHTML=viewGuide();
@@ -532,6 +539,498 @@ function countAlerts(){
     if(p.gateStatus==="cho_duyet") n++;
   });
   return n;
+}
+
+/* ============================================================
+   GIAO VIEC (tap trung toan phong)
+   ============================================================ */
+function allTasks(){
+  const out=[];
+  PROJECTS.forEach(p=>(p.tasks||[]).forEach(t=>out.push(Object.assign({},t,{_proj:p.name,_pid:p.id,_gate:p.gate}))));
+  return out;
+}
+function taskLate(t){
+  if(t.status==="Hoàn thành") return false;
+  const d=daysBetween(t.deadline);
+  return d!==null&&d<0;
+}
+function viewTasks(){
+  const term=(searchTerms.task||"").toLowerCase();
+  const fp=searchTerms.taskPerson||"all";
+  const fs=searchTerms.taskStatus||"open";
+  let list=allTasks();
+  if(term) list=list.filter(t=>String(t.task||"").toLowerCase().includes(term)||String(t._proj).toLowerCase().includes(term)||String(t.person||"").toLowerCase().includes(term));
+  if(fp!=="all") list=list.filter(t=>sameName(t.person,fp));
+  if(fs==="open") list=list.filter(t=>t.status!=="Hoàn thành");
+  else if(fs==="late") list=list.filter(taskLate);
+  else if(fs==="done") list=list.filter(t=>t.status==="Hoàn thành");
+  list.sort((a,b)=>{
+    const ra=taskLate(a)?0:(a.status==="Hoàn thành"?2:1), rb=taskLate(b)?0:(b.status==="Hoàn thành"?2:1);
+    if(ra!==rb) return ra-rb;
+    return String(a.deadline||"9999").localeCompare(String(b.deadline||"9999"));
+  });
+  const all=allTasks();
+  const people=[...new Set(all.map(t=>t.person).filter(Boolean))];
+  const late=all.filter(taskLate).length;
+  const open=all.filter(t=>t.status!=="Hoàn thành").length;
+  const done=all.filter(t=>t.status==="Hoàn thành").length;
+
+  return `
+    <div class="grid-kpi">
+      <div class="kpi-box"><div class="num">${all.length}</div><div class="lbl">Tổng công việc</div></div>
+      <div class="kpi-box mid"><div class="num">${open}</div><div class="lbl">Đang mở</div></div>
+      <div class="kpi-box ${late?'warn':'ok'}"><div class="num">${late}</div><div class="lbl">Trễ hạn</div></div>
+      <div class="kpi-box ok"><div class="num">${done}</div><div class="lbl">Hoàn thành</div></div>
+      <div class="kpi-box"><div class="num">${all.length?Math.round(done/all.length*100):0}%</div><div class="lbl">Tỷ lệ hoàn thành</div></div>
+    </div>
+    <div class="card">
+      <h2>Công việc đã giao <span class="sub">Task → Người → Deadline → Output → Kiểm tra</span></h2>
+      <div class="toolbar">
+        <input type="text" placeholder="Tìm công việc / dự án / người..." value="${esc(searchTerms.task||'')}" oninput="searchTerms.task=this.value;render();">
+        <select onchange="searchTerms.taskPerson=this.value;render();">
+          <option value="all">Tất cả nhân sự</option>
+          ${people.map(n=>`<option value="${esc(n)}" ${fp===n?'selected':''}>${esc(n)}</option>`).join("")}
+        </select>
+        <select onchange="searchTerms.taskStatus=this.value;render();">
+          <option value="open" ${fs==='open'?'selected':''}>Đang mở</option>
+          <option value="late" ${fs==='late'?'selected':''}>Trễ hạn</option>
+          <option value="done" ${fs==='done'?'selected':''}>Hoàn thành</option>
+          <option value="all" ${fs==='all'?'selected':''}>Tất cả</option>
+        </select>
+        <div class="spacer"></div>
+        <button class="btn" onclick="exportTasksCsv()">Xuất CSV</button>
+        <button class="btn primary" onclick="newTaskModal()">+ Giao việc mới</button>
+      </div>
+      ${list.length?`<table><thead><tr><th>Công việc</th><th>Dự án</th><th>Người thực hiện</th><th>Deadline</th><th>Trạng thái</th><th>Output</th><th></th></tr></thead><tbody>
+        ${list.map(t=>{
+          const dd=daysBetween(t.deadline);
+          return `<tr class="${taskLate(t)?'':''}">
+            <td data-label="Công việc"><b>${esc(t.task||'')}</b>${t.note?`<div class="detail-row">${esc(t.note)}</div>`:''}</td>
+            <td data-label="Dự án"><span class="badge gate${t._gate||1}">G${esc(t._gate||'?')}</span> ${esc(t._proj)}</td>
+            <td data-label="Người">${esc(t.person||'—')}</td>
+            <td data-label="Deadline">${esc(t.deadline||'—')}${taskLate(t)?` <span class="badge crit">Trễ ${Math.abs(dd)}d</span>`:(dd!==null&&dd>=0&&dd<=3&&t.status!=="Hoàn thành"?` <span class="badge check">Còn ${dd}d</span>`:'')}</td>
+            <td data-label="Trạng thái"><span class="badge ${t.status==='Hoàn thành'?'released':(taskLate(t)?'crit':'check')}">${esc(t.status||'')}</span></td>
+            <td data-label="Output"><div class="detail-row">${esc(t.output||'—')}</div>${t.checkedBy?`<div class="detail-row">KT: ${esc(t.checkedBy)}</div>`:''}</td>
+            <td data-label=""><button class="btn small" onclick="editTaskModal('${t._pid}','${t.id}')">Sửa</button></td>
+          </tr>`;
+        }).join("")}
+      </tbody></table>`:`<div class="empty-state"><div class="icon">📋</div>Không có công việc nào khớp bộ lọc.</div>`}
+    </div>
+    ${people.length?`<div class="card">
+      <h2>Khối lượng theo nhân sự</h2>
+      <table><thead><tr><th>Nhân sự</th><th>Tổng việc</th><th>Đang mở</th><th>Trễ hạn</th><th>Hoàn thành</th><th>Tỷ lệ</th></tr></thead><tbody>
+        ${people.map(n=>{
+          const ts=all.filter(t=>sameName(t.person,n));
+          const d=ts.filter(t=>t.status==="Hoàn thành").length;
+          const l=ts.filter(taskLate).length;
+          const pct=ts.length?Math.round(d/ts.length*100):0;
+          return `<tr><td data-label="Nhân sự"><b>${esc(n)}</b></td>
+            <td data-label="Tổng">${ts.length}</td>
+            <td data-label="Đang mở">${ts.length-d}</td>
+            <td data-label="Trễ">${l?`<span class="badge crit">${l}</span>`:'0'}</td>
+            <td data-label="Xong">${d}</td>
+            <td data-label="Tỷ lệ"><div class="progress-wrap"><div class="progress-bar" style="width:${pct}%"></div></div>
+              <div class="detail-row">${pct}%</div></td></tr>`;
+        }).join("")}
+      </tbody></table>
+    </div>`:''}`;
+}
+function newTaskModal(){
+  const names=(META.staff||[]).map(s=>s.name);
+  openModalHtml(`
+    <h3>Giao việc mới</h3>
+    <div class="form-row">
+      <div class="fld full"><label>Nội dung công việc *</label>
+        <textarea id="tk_task" rows="2" placeholder="VD: Thiết kế mạch điều khiển motor M01"></textarea></div>
+      <div class="fld"><label>Thuộc dự án *</label><select id="tk_proj">
+        ${PROJECTS.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join("")}</select></div>
+      <div class="fld"><label>Người thực hiện *</label><input type="text" id="tk_person" list="stfT">
+        <datalist id="stfT">${names.map(n=>`<option value="${esc(n)}"></option>`).join("")}</datalist></div>
+      <div class="fld"><label>Deadline</label><input type="date" id="tk_deadline"></div>
+      <div class="fld"><label>Trạng thái</label><select id="tk_status">${TASK_STATUS.map(s=>`<option>${s}</option>`).join("")}</select></div>
+      <div class="fld full"><label>Output yêu cầu</label><input type="text" id="tk_output" placeholder="VD: Schematic + terminal + BOM"></div>
+      <div class="fld"><label>Người kiểm tra</label><input type="text" id="tk_checked" list="stfT" value="${esc(ME.name)}"></div>
+      <div class="fld full"><label>Ghi chú</label><textarea id="tk_note" rows="2"></textarea></div>
+    </div>
+    <div class="notice">Giao việc rõ ràng: <b>Task → Người → Deadline → Output → Kiểm tra</b>. Tránh giao kiểu "em làm cái này đi".</div>
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Huỷ</button>
+      <button class="btn primary" onclick="saveNewTask()">Giao việc</button></div>`);
+}
+async function saveNewTask(){
+  const task=document.getElementById("tk_task").value.trim();
+  const pid=document.getElementById("tk_proj").value;
+  const person=document.getElementById("tk_person").value.trim();
+  if(!task||!person){alert("Nhập nội dung công việc và người thực hiện.");return;}
+  const p=PROJECTS.find(x=>x.id===pid);
+  if(!p){alert("Chọn dự án.");return;}
+  if(!p.tasks) p.tasks=[];
+  p.tasks.push({id:uid("t"),task,person,deadline:document.getElementById("tk_deadline").value,
+    status:document.getElementById("tk_status").value,output:document.getElementById("tk_output").value.trim(),
+    checkedBy:document.getElementById("tk_checked").value.trim(),note:document.getElementById("tk_note").value,
+    assignedBy:ME.name,assignedAt:todayStr()});
+  CUR=p;
+  if(await saveProject()){ closeModal(); toast("Đã giao việc",esc(person),"success"); }
+}
+function editTaskModal(pid,tid){
+  const p=PROJECTS.find(x=>x.id===pid);
+  const t=(p.tasks||[]).find(x=>x.id===tid);
+  if(!t) return;
+  const names=(META.staff||[]).map(s=>s.name);
+  const canDel=isLeader();
+  openModalHtml(`
+    <h3>Cập nhật công việc</h3>
+    <div class="detail-row" style="margin-bottom:10px;">Dự án: <b>${esc(p.name)}</b>${t.assignedBy?` · Giao bởi ${esc(t.assignedBy)} ${esc(t.assignedAt||'')}`:''}</div>
+    <div class="form-row">
+      <div class="fld full"><label>Nội dung</label><textarea id="et_task" rows="2" ${isLeader()?'':'disabled'}>${esc(t.task||'')}</textarea></div>
+      <div class="fld"><label>Người thực hiện</label><input type="text" id="et_person" value="${esc(t.person||'')}" list="stfE" ${isLeader()?'':'disabled'}>
+        <datalist id="stfE">${names.map(n=>`<option value="${esc(n)}"></option>`).join("")}</datalist></div>
+      <div class="fld"><label>Deadline</label><input type="date" id="et_deadline" value="${esc(t.deadline||'')}" ${isLeader()?'':'disabled'}></div>
+      <div class="fld"><label>Trạng thái</label><select id="et_status">${TASK_STATUS.map(s=>`<option ${t.status===s?'selected':''}>${s}</option>`).join("")}</select></div>
+      <div class="fld"><label>Người kiểm tra</label><input type="text" id="et_checked" value="${esc(t.checkedBy||'')}" ${isLeader()?'':'disabled'}></div>
+      <div class="fld full"><label>Output</label><input type="text" id="et_output" value="${esc(t.output||'')}" ${isLeader()?'':'disabled'}></div>
+      <div class="fld full"><label>Ghi chú</label><textarea id="et_note" rows="2">${esc(t.note||'')}</textarea></div>
+    </div>
+    <div class="modal-actions">
+      ${canDel?`<button class="btn danger" onclick="delTaskCentral('${pid}','${tid}')">Xoá</button>`:''}
+      <div class="spacer"></div>
+      <button class="btn" onclick="closeModal()">Huỷ</button>
+      <button class="btn primary" onclick="saveEditTask('${pid}','${tid}')">Lưu</button></div>`);
+}
+async function saveEditTask(pid,tid){
+  const p=PROJECTS.find(x=>x.id===pid);
+  const t=(p.tasks||[]).find(x=>x.id===tid);
+  t.status=document.getElementById("et_status").value;
+  t.note=document.getElementById("et_note").value;
+  if(isLeader()){
+    t.task=document.getElementById("et_task").value.trim()||t.task;
+    t.person=document.getElementById("et_person").value.trim();
+    t.deadline=document.getElementById("et_deadline").value;
+    t.output=document.getElementById("et_output").value.trim();
+    t.checkedBy=document.getElementById("et_checked").value.trim();
+  }
+  CUR=p;
+  if(await saveProject()){ closeModal(); toast("Đã cập nhật","","success"); }
+}
+async function delTaskCentral(pid,tid){
+  if(!confirm("Xoá công việc này?")) return;
+  const p=PROJECTS.find(x=>x.id===pid);
+  p.tasks=(p.tasks||[]).filter(x=>x.id!==tid);
+  CUR=p;
+  if(await saveProject()){ closeModal(); toast("Đã xoá","","warn"); }
+}
+function csvText(rows,headers){
+  const e=v=>{v=(v===undefined||v===null)?"":String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
+  return "\uFEFF"+[headers.map(h=>e(h.label)).join(",")].concat(rows.map(r=>headers.map(h=>e(r[h.key])).join(","))).join("\n");
+}
+function dlText(name,text,mime){
+  const b=new Blob([text],{type:mime||"text/csv;charset=utf-8;"});
+  const u=URL.createObjectURL(b);const a=document.createElement("a");
+  a.href=u;a.download=name;a.click();URL.revokeObjectURL(u);
+}
+function exportTasksCsv(){
+  const rows=allTasks().map(t=>({task:t.task,proj:t._proj,person:t.person,deadline:t.deadline,
+    status:t.status,output:t.output,checkedBy:t.checkedBy,assignedBy:t.assignedBy,late:taskLate(t)?"TRỄ":""}));
+  dlText("cong-viec-"+todayStr()+".csv",csvText(rows,[
+    {key:"task",label:"Công việc"},{key:"proj",label:"Dự án"},{key:"person",label:"Người thực hiện"},
+    {key:"deadline",label:"Deadline"},{key:"status",label:"Trạng thái"},{key:"output",label:"Output"},
+    {key:"checkedBy",label:"Người kiểm tra"},{key:"assignedBy",label:"Người giao"},{key:"late",label:"Trễ hạn"}]));
+}
+
+/* ============================================================
+   KHO FILE
+   ============================================================ */
+let fileSel={};
+function allFiles(){
+  const out=[];
+  PROJECTS.forEach(p=>(p.docs||[]).forEach(d=>(d.files||[]).forEach(f=>{
+    out.push(Object.assign({},f,{_proj:p.name,_pid:p.id,_doc:d.name,_docStatus:d.status,
+      _gate:docGate(d.name),_projGate:p.gate,_mine:sameName(p.manager,ME.name),_canEdit:canEdit(p)}));
+  })));
+  return out;
+}
+function fileSelCount(){return Object.keys(fileSel).length;}
+function toggleFileSel(id,on){ if(on) fileSel[id]=true; else delete fileSel[id]; render(); }
+function selAllFiles(on){
+  visibleFiles().forEach(f=>{ if(on) fileSel[f.id]=true; else delete fileSel[f.id]; });
+  render();
+}
+function visibleFiles(){
+  const term=(searchTerms.file||"").toLowerCase();
+  const fp=searchTerms.fileProj||"all";
+  const fg=searchTerms.fileGate||"all";
+  let list=allFiles();
+  if(term) list=list.filter(f=>String(f.name).toLowerCase().includes(term)||String(f._proj).toLowerCase().includes(term)||String(f._doc).toLowerCase().includes(term));
+  if(fp==="mine") list=list.filter(f=>f._mine);
+  else if(fp!=="all") list=list.filter(f=>f._pid===fp);
+  if(fg!=="all") list=list.filter(f=>String(f._gate)===String(fg));
+  return list;
+}
+function viewFiles(){
+  const list=visibleFiles();
+  const all=allFiles();
+  const totalSize=all.reduce((n,f)=>n+(f.size||0),0);
+  const byProj={};
+  list.forEach(f=>{(byProj[f._proj]=byProj[f._proj]||[]).push(f);});
+  const sel=fileSelCount();
+  return `
+    <div class="grid-kpi">
+      <div class="kpi-box"><div class="num">${all.length}</div><div class="lbl">Tổng số file</div></div>
+      <div class="kpi-box"><div class="num" style="font-size:20px;">${fmtSize(totalSize)}</div><div class="lbl">Dung lượng</div></div>
+      <div class="kpi-box"><div class="num">${Object.keys(byProj).length}</div><div class="lbl">Dự án có file</div></div>
+      <div class="kpi-box ${sel?'mid':''}"><div class="num">${sel}</div><div class="lbl">Đang chọn</div></div>
+    </div>
+    <div class="card">
+      <h2>Kho file dự án <span class="sub">Toàn bộ file nhân viên đã đưa lên · Tải về theo folder</span></h2>
+      <div class="notice info">File được lưu trên máy chủ (Google Drive). Anh/chị có thể tải từng file, hoặc chọn nhiều file rồi tải về <b>1 file .zip đã chia sẵn thư mục</b> theo Dự án → Hạng mục hồ sơ.</div>
+      <div class="toolbar">
+        <input type="text" placeholder="Tìm tên file / dự án / hạng mục..." value="${esc(searchTerms.file||'')}" oninput="searchTerms.file=this.value;render();">
+        <select onchange="searchTerms.fileProj=this.value;render();">
+          <option value="all">Tất cả dự án</option>
+          <option value="mine" ${searchTerms.fileProj==='mine'?'selected':''}>Dự án của tôi</option>
+          ${PROJECTS.map(p=>`<option value="${p.id}" ${searchTerms.fileProj===p.id?'selected':''}>${esc(p.name)}</option>`).join("")}
+        </select>
+        <select onchange="searchTerms.fileGate=this.value;render();">
+          <option value="all">Tất cả Gate</option>
+          ${GATES.map(g=>`<option value="${g.n}" ${String(searchTerms.fileGate)===String(g.n)?'selected':''}>G${g.n}</option>`).join("")}
+        </select>
+        <div class="spacer"></div>
+        <button class="btn small" onclick="selAllFiles(true)">Chọn tất cả</button>
+        <button class="btn small" onclick="selAllFiles(false)">Bỏ chọn</button>
+        <button class="btn primary" onclick="zipOptions()" ${sel?'':'disabled'}>⬇ Tải ${sel||''} file (.zip)</button>
+      </div>
+      ${list.length? Object.keys(byProj).sort().map(pn=>{
+        const files=byProj[pn];
+        const size=files.reduce((n,f)=>n+(f.size||0),0);
+        const pid=files[0]._pid;
+        return `
+        <div style="margin-top:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;background:#f6f9fc;border:1px solid var(--border);
+            border-radius:9px 9px 0 0;padding:9px 12px;flex-wrap:wrap;gap:8px;">
+            <div><b style="font-size:13px;">📁 ${esc(pn)}</b> <span class="detail-row">${files.length} file · ${fmtSize(size)}</span></div>
+            <button class="btn small" onclick="zipOneProject('${pid}')">⬇ Tải cả dự án</button>
+          </div>
+          <div style="border:1px solid var(--border);border-top:none;border-radius:0 0 9px 9px;">
+            ${files.map(f=>`
+              <div style="display:flex;gap:9px;align-items:center;padding:9px 12px;border-bottom:1px solid var(--border);flex-wrap:wrap;">
+                <input type="checkbox" ${fileSel[f.id]?'checked':''} onchange="toggleFileSel('${f.id}',this.checked)" style="width:17px;height:17px;cursor:pointer;">
+                <div style="flex:1;min-width:180px;">
+                  <div style="font-size:13px;font-weight:600;">📎 ${esc(f.name)}</div>
+                  <div class="detail-row"><span class="badge gate${f._gate}">G${f._gate}</span> ${esc(f._doc)}
+                    · ${fmtSize(f.size)}${f.by?` · ${esc(f.by)}`:''}${f.uploadedAt?` · ${esc(f.uploadedAt)}`:''}</div>
+                </div>
+                <span class="badge ${String(f._docStatus||'wip').toLowerCase()}">${esc(f._docStatus||'')}</span>
+                <button class="btn small" onclick="dlFile('${f.id}','${esc(f.name)}')">Tải</button>
+                <button class="btn small" onclick="openProject('${f._pid}')">Mở dự án</button>
+                ${f._canEdit?`<button class="btn small danger" onclick="delFileFromLib('${f._pid}','${esc(f._doc)}','${f.id}')">Xoá</button>`:''}
+              </div>`).join("")}
+          </div>
+        </div>`;
+      }).join("") : `<div class="empty-state"><div class="icon">📂</div>${all.length?'Không có file nào khớp bộ lọc.':'Chưa có file nào được đưa lên.'}</div>`}
+    </div>`;
+}
+function zipOneProject(pid){
+  fileSel={};
+  allFiles().filter(f=>f._pid===pid).forEach(f=>fileSel[f.id]=true);
+  zipOptions();
+}
+function zipOptions(){
+  const ids=Object.keys(fileSel);
+  if(!ids.length){alert("Chưa chọn file nào.");return;}
+  const files=allFiles().filter(f=>fileSel[f.id]);
+  const size=files.reduce((n,f)=>n+(f.size||0),0);
+  openModalHtml(`
+    <h3>Tải file về theo folder</h3>
+    <div class="notice info">Đã chọn <b>${files.length}</b> file (~${fmtSize(size)}). Hệ thống sẽ tải từ máy chủ rồi nén thành 1 file .zip.</div>
+    <div class="form-row">
+      <div class="fld full"><label>Cấu trúc thư mục</label>
+        <select id="zs">
+          <option value="proj_doc">Dự án → Hạng mục hồ sơ (khuyến nghị)</option>
+          <option value="proj">Theo Dự án</option>
+          <option value="gate_proj">Theo Gate → Dự án</option>
+          <option value="doc">Theo Hạng mục hồ sơ</option>
+          <option value="flat">Không phân thư mục</option>
+        </select></div>
+      <div class="fld full">
+        <label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:13px;color:var(--text);font-weight:500;">
+          <input type="checkbox" id="zi" checked style="width:auto;"> Kèm file danh mục DANH-MUC.csv</label>
+      </div>
+    </div>
+    <div id="zp" style="display:none;">
+      <div class="detail-row" id="zpt">Đang chuẩn bị…</div>
+      <div class="progress-wrap"><div class="progress-bar" id="zpb" style="width:0%"></div></div>
+    </div>
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Huỷ</button>
+      <button class="btn primary" id="zbtn" onclick="doZip()">Bắt đầu tải &amp; nén</button></div>`);
+}
+function safeName(s){return String(s||"x").replace(/[\\/:*?"<>|]/g,"-").trim().slice(0,80);}
+async function doZip(){
+  if(typeof JSZip==="undefined"){alert("Không tải được thư viện nén (cần Internet). Thử lại khi có mạng.");return;}
+  const st=document.getElementById("zs").value;
+  const inc=document.getElementById("zi").checked;
+  const btn=document.getElementById("zbtn"), pr=document.getElementById("zp");
+  const pt=document.getElementById("zpt"), pb=document.getElementById("zpb");
+  btn.disabled=true; pr.style.display="block";
+  const files=allFiles().filter(f=>fileSel[f.id]);
+  const zip=new JSZip(); const rows=[];
+  let okN=0,errN=0,bytes=0;
+  for(let i=0;i<files.length;i++){
+    const f=files[i];
+    pt.textContent=`Đang tải ${i+1}/${files.length}: ${f.name}`;
+    pb.style.width=Math.round(i/files.length*100)+"%";
+    try{
+      let d=await api("getFile",{fileId:f.id,chunkIndex:0});
+      let data=d.data;
+      if(!d.isLast){ let c=1; while(true){ const r=await api("getFile",{fileId:f.id,chunkIndex:c}); data+=r.data; if(r.isLast||!r.data)break; c++; } }
+      let path;
+      const P=safeName(f._proj), D=safeName(f._doc), N=safeName(f.name);
+      if(st==="proj_doc") path=`${P}/${D}/${N}`;
+      else if(st==="proj") path=`${P}/${N}`;
+      else if(st==="gate_proj") path=`G${f._gate}/${P}/${N}`;
+      else if(st==="doc") path=`${D}/${N}`;
+      else path=N;
+      let fp=path,k=1;
+      while(zip.file(fp)){ const dot=path.lastIndexOf("."); fp=dot>0?`${path.slice(0,dot)}_${k}${path.slice(dot)}`:`${path}_${k}`; k++; }
+      zip.file(fp,String(data).split(",")[1]||"",{base64:true});
+      rows.push({duAn:f._proj,gate:"G"+f._gate,hangMuc:f._doc,trangThai:f._docStatus,tenFile:f.name,
+        dungLuong:fmtSize(f.size),nguoiTai:f.by||"",ngay:f.uploadedAt||"",duongDan:fp});
+      okN++; bytes+=f.size||0;
+    }catch(e){ errN++; }
+  }
+  if(!okN){ btn.disabled=false; pr.style.display="none"; alert("Không tải được file nào."+(errN?` (${errN} lỗi)`:"")); return; }
+  if(inc) zip.file("DANH-MUC.csv",csvText(rows,[
+    {key:"duAn",label:"Dự án"},{key:"gate",label:"Gate"},{key:"hangMuc",label:"Hạng mục"},
+    {key:"trangThai",label:"Trạng thái"},{key:"tenFile",label:"Tên file"},{key:"dungLuong",label:"Dung lượng"},
+    {key:"nguoiTai",label:"Người tải lên"},{key:"ngay",label:"Ngày"},{key:"duongDan",label:"Đường dẫn trong zip"}]));
+  pt.textContent="Đang nén…";
+  try{
+    const blob=await zip.generateAsync({type:"blob"},m=>{pt.textContent=`Đang nén… ${Math.round(m.percent)}%`;});
+    const u=URL.createObjectURL(blob);const a=document.createElement("a");
+    a.href=u;a.download="HOSO-FILE_"+todayStr()+".zip";a.click();URL.revokeObjectURL(u);
+    closeModal();
+    toast("Đã tải xong",`<b>${okN}</b> file (~${fmtSize(bytes)})${errN?` · ${errN} file lỗi`:''}`,"success");
+  }catch(e){ btn.disabled=false; alert("Lỗi nén: "+e.message+"\n\nThử chọn ít file hơn."); }
+}
+async function delFileFromLib(pid,docName,fid){
+  if(!confirm("Xoá file này khỏi dự án?")) return;
+  const p=PROJECTS.find(x=>x.id===pid);
+  const d=(p.docs||[]).find(x=>x.name===docName);
+  if(!d) return;
+  d.files=(d.files||[]).filter(f=>f.id!==fid);
+  delete fileSel[fid];
+  CUR=p;
+  try{ await api("deleteFile",{fileId:fid}); }catch(e){}
+  if(await saveProject()) toast("Đã xoá file","","warn");
+}
+
+/* ============================================================
+   BAO CAO
+   ============================================================ */
+function viewReports(){
+  const tasks=allTasks();
+  const files=allFiles();
+  let rel=0,tot=0; PROJECTS.forEach(p=>{const pr=docProgress(p);rel+=pr.released;tot+=pr.total;});
+  const gateCount={1:0,2:0,3:0,4:0,5:0};
+  PROJECTS.forEach(p=>gateCount[Number(p.gate)||1]++);
+  const staff=(META.staff||[]).map(s=>{
+    const ps=PROJECTS.filter(p=>sameName(p.manager,s.name));
+    const ts=tasks.filter(t=>sameName(t.person,s.name));
+    const tdone=ts.filter(t=>t.status==="Hoàn thành").length;
+    const tlate=ts.filter(taskLate).length;
+    const plate=ps.filter(p=>p.gateStatus!=="hoan_thanh"&&daysBetween(p.deadline)!==null&&daysBetween(p.deadline)<0).length;
+    let dr=0,dt=0; ps.forEach(p=>{const x=docProgress(p);dr+=x.released;dt+=x.total;});
+    const score=Math.max(0,Math.min(100,Math.round(
+      (ts.length?tdone/ts.length:0.6)*40 + (dt?dr/dt:0)*35 + (ts.length?(1-Math.min(1,tlate/ts.length)):1)*15 + (plate?0:10))));
+    return {name:s.name,level:s.level,projs:ps.length,pdone:ps.filter(p=>p.gateStatus==="hoan_thanh").length,plate,
+      tasks:ts.length,tdone,tlate,docPct:dt?Math.round(dr/dt*100):0,score};
+  }).sort((a,b)=>b.score-a.score);
+
+  return `
+    <div class="card">
+      <h2>Báo cáo tổng hợp <span class="sub">Cập nhật ${new Date().toLocaleString('vi-VN')}</span></h2>
+      <div class="toolbar">
+        <button class="btn" onclick="exportProjectsCsv()">Xuất CSV dự án</button>
+        <button class="btn" onclick="exportTasksCsv()">Xuất CSV công việc</button>
+        <button class="btn" onclick="exportStaffCsv()">Xuất CSV nhân sự</button>
+        <div class="spacer"></div>
+        <button class="btn primary" onclick="window.print()">🖨 In báo cáo</button>
+      </div>
+      <div class="grid-kpi">
+        <div class="kpi-box"><div class="num">${PROJECTS.length}</div><div class="lbl">Dự án</div></div>
+        <div class="kpi-box ok"><div class="num">${PROJECTS.filter(p=>p.gateStatus==="hoan_thanh").length}</div><div class="lbl">Đã Release</div></div>
+        <div class="kpi-box ${tot&&rel/tot>=.5?'ok':'mid'}"><div class="num">${tot?Math.round(rel/tot*100):0}%</div><div class="lbl">Hồ sơ RELEASED</div></div>
+        <div class="kpi-box"><div class="num">${tasks.length}</div><div class="lbl">Công việc</div></div>
+        <div class="kpi-box ${tasks.filter(taskLate).length?'warn':'ok'}"><div class="num">${tasks.filter(taskLate).length}</div><div class="lbl">Việc trễ hạn</div></div>
+        <div class="kpi-box"><div class="num">${files.length}</div><div class="lbl">File hồ sơ</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Tiến độ theo dự án</h2>
+      <table><thead><tr><th>Dự án</th><th>PIC</th><th>Gate</th><th>Hồ sơ</th><th>Việc</th><th>File</th><th>Deadline</th><th>Trạng thái</th></tr></thead><tbody>
+      ${PROJECTS.map(p=>{
+        const pr=docProgress(p);
+        const ts=(p.tasks||[]);
+        const fs=files.filter(f=>f._pid===p.id).length;
+        const dd=daysBetween(p.deadline);
+        const late=p.gateStatus!=="hoan_thanh"&&dd!==null&&dd<0;
+        return `<tr><td data-label="Dự án"><b>${esc(p.name)}</b><div class="detail-row">${esc(p.customer||'')}</div></td>
+          <td data-label="PIC">${esc(p.manager||'—')}</td>
+          <td data-label="Gate"><span class="badge gate${p.gate||1}">G${esc(p.gate||'?')}</span></td>
+          <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:${pr.pct}%"></div></div>
+            <div class="detail-row">${pr.released}/${pr.total}</div></td>
+          <td data-label="Việc">${ts.filter(t=>t.status==="Hoàn thành").length}/${ts.length}</td>
+          <td data-label="File">${fs}</td>
+          <td data-label="Deadline">${esc(p.deadline||'—')}${late?` <span class="badge crit">Trễ ${Math.abs(dd)}d</span>`:''}</td>
+          <td data-label="Trạng thái"><span class="badge ${GATE_STATUS_BADGE[p.gateStatus||'cho_nv']}">${esc(GATE_STATUS_LABEL[p.gateStatus||'cho_nv'])}</span></td></tr>`;
+      }).join("")}</tbody></table>
+    </div>
+
+    <div class="card">
+      <h2>Đánh giá nhân sự <span class="sub">Chấm tự động: việc hoàn thành 40 · hồ sơ 35 · đúng hạn 15 · không trễ dự án 10</span></h2>
+      ${staff.length?`<table><thead><tr><th>#</th><th>Nhân sự</th><th>Dự án</th><th>Công việc</th><th>Hồ sơ</th><th>Trễ</th><th>Điểm</th></tr></thead><tbody>
+        ${staff.map((s,i)=>`<tr>
+          <td data-label="#"><b>${i+1}</b></td>
+          <td data-label="Nhân sự"><b>${esc(s.name)}</b><div class="detail-row">${esc((s.level||'').split(' - ')[0])}</div></td>
+          <td data-label="Dự án">${s.pdone}/${s.projs}${s.plate?` <span class="badge crit">${s.plate} trễ</span>`:''}</td>
+          <td data-label="Công việc">${s.tdone}/${s.tasks}</td>
+          <td data-label="Hồ sơ">${s.docPct}%</td>
+          <td data-label="Trễ">${s.tlate?`<span class="badge crit">${s.tlate}</span>`:'0'}</td>
+          <td data-label="Điểm"><b style="font-size:16px;color:${s.score>=85?'var(--green)':(s.score>=70?'var(--accent)':(s.score>=55?'var(--amber)':'var(--red)'))}">${s.score}</b>
+            <span class="badge ${s.score>=85?'released':(s.score>=70?'approved':(s.score>=55?'check':'crit'))}">${s.score>=85?'A':(s.score>=70?'B':(s.score>=55?'C':'D'))}</span></td>
+        </tr>`).join("")}
+      </tbody></table>`:`<div class="empty-state">Chưa có dữ liệu nhân sự.</div>`}
+    </div>
+
+    <div class="card">
+      <h2>Phân bố theo Gate</h2>
+      <div class="gate-track">${GATES.map(g=>`<div class="gate-node g${g.n} ${gateCount[g.n]?'current':''}">
+        <span class="gn">${gateCount[g.n]}</span>${esc(g.name.split(' - ')[1]||g.name)}</div>`).join("")}</div>
+    </div>`;
+}
+function exportProjectsCsv(){
+  const rows=PROJECTS.map(p=>{const pr=docProgress(p);
+    return {name:p.name,customer:p.customer,manager:p.manager,gate:"G"+p.gate,
+      status:GATE_STATUS_LABEL[p.gateStatus||'cho_nv'],docs:`${pr.released}/${pr.total}`,pct:pr.pct+"%",
+      deadline:p.deadline,updatedBy:p.updatedBy,updatedAt:p.updatedAt?new Date(p.updatedAt).toLocaleString('vi-VN'):""};});
+  dlText("du-an-"+todayStr()+".csv",csvText(rows,[
+    {key:"name",label:"Dự án"},{key:"customer",label:"Khách hàng"},{key:"manager",label:"PIC"},
+    {key:"gate",label:"Gate"},{key:"status",label:"Trạng thái"},{key:"docs",label:"Hồ sơ"},
+    {key:"pct",label:"Tiến độ"},{key:"deadline",label:"Deadline"},
+    {key:"updatedBy",label:"Cập nhật bởi"},{key:"updatedAt",label:"Thời điểm"}]));
+}
+function exportStaffCsv(){
+  const tasks=allTasks();
+  const rows=(META.staff||[]).map(s=>{
+    const ps=PROJECTS.filter(p=>sameName(p.manager,s.name));
+    const ts=tasks.filter(t=>sameName(t.person,s.name));
+    return {name:s.name,code:s.code,level:s.level,position:s.position,phone:s.phone,email:s.email,
+      projs:ps.length,pdone:ps.filter(p=>p.gateStatus==="hoan_thanh").length,
+      tasks:ts.length,tdone:ts.filter(t=>t.status==="Hoàn thành").length,tlate:ts.filter(taskLate).length};});
+  dlText("nhan-su-"+todayStr()+".csv",csvText(rows,[
+    {key:"name",label:"Họ tên"},{key:"code",label:"Mã NV"},{key:"level",label:"Cấp bậc"},
+    {key:"position",label:"Chức danh"},{key:"phone",label:"Điện thoại"},{key:"email",label:"Email"},
+    {key:"projs",label:"Số dự án"},{key:"pdone",label:"Dự án xong"},
+    {key:"tasks",label:"Số việc"},{key:"tdone",label:"Việc xong"},{key:"tlate",label:"Việc trễ"}]));
 }
 
 /* ============================================================
