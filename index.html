@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<!-- saved from url=(0042)file:///C:/Users/HP/Downloads/index_3.html -->
-<html lang="vi"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VNT · Quản lý Quy trình Kỹ thuật Điện</title>
 <meta name="theme-color" content="#0b1b2b">
@@ -187,7 +187,7 @@
     td::before{content:attr(data-label);font-weight:800;color:var(--text-light);font-size:10.5px;text-transform:uppercase;}
   }
 </style>
-<script src="./index_files/jszip.min.js.download"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
 
@@ -198,7 +198,7 @@
     <h1>Quản lý Quy trình Kỹ thuật</h1>
     <div class="sub">Phòng Kỹ thuật Điện – Điện tử · VNT Việt Nam</div>
     <div class="login-err" id="loginErr"></div>
-    <div id="setupBox" style="display: block;">
+    <div id="setupBox" style="display:none;">
       <div class="fld">
         <label>Địa chỉ máy chủ (URL Web App)</label>
         <input type="text" id="srvUrl" placeholder="https://script.google.com/macros/s/.../exec">
@@ -206,7 +206,7 @@
       <button class="btn primary wide" onclick="saveServer()">Lưu địa chỉ máy chủ</button>
       <div class="login-hint">Lần đầu sử dụng cần nhập địa chỉ máy chủ do Trưởng phòng cung cấp.</div>
     </div>
-    <div id="loginBox" style="display: none;">
+    <div id="loginBox">
       <div class="fld">
         <label>Mã nhân viên</label>
         <input type="text" id="lgCode" autocomplete="username" placeholder="vd: admin">
@@ -218,7 +218,7 @@
       <button class="btn primary wide" id="lgBtn" onclick="doLogin()">Đăng nhập</button>
       <div class="login-hint">
         Chưa có tài khoản? Liên hệ Trưởng phòng để được cấp.<br>
-        <a href="file:///C:/Users/HP/Downloads/index_3.html#" onclick="showSetup();return false;" style="color:var(--accent);">Đổi địa chỉ máy chủ</a>
+        <a href="#" onclick="showSetup();return false;" style="color:var(--accent);">Đổi địa chỉ máy chủ</a>
       </div>
     </div>
   </div>
@@ -265,6 +265,7 @@ const AUTO_KEY = "vnt_app_auto";
 let ME = null;            // {code,name,role}
 let PROJECTS = [];        // toan bo du an
 let META = {staff:[], config:null};
+let GTASKS = [];   // cong viec khong thuoc du an
 let activeTab = "dashboard";
 let searchTerms = {};
 let autoTimer = null;
@@ -448,6 +449,7 @@ async function refreshAll(showToast){
     const d=await api("getAll");
     PROJECTS=d.projects||[];
     META=d.meta||{staff:[],config:null};
+    GTASKS=d.generalTasks||[];
     if(d.me) ME=d.me;
     lastSync=new Date();
     render();
@@ -469,7 +471,7 @@ async function silentRefresh(){
     const d=await api("getAll");
     const before={}; PROJECTS.forEach(p=>before[p.id]=p.updatedAt||"");
     const changed=(d.projects||[]).filter(p=>before[p.id]!==undefined && before[p.id]!==(p.updatedAt||""));
-    PROJECTS=d.projects||[]; META=d.meta||META; lastSync=new Date();
+    PROJECTS=d.projects||[]; META=d.meta||META; GTASKS=d.generalTasks||[]; lastSync=new Date();
     changed.forEach(p=>p._flash=true);
     render();
     if(changed.length){
@@ -547,8 +549,10 @@ function countAlerts(){
 function allTasks(){
   const out=[];
   PROJECTS.forEach(p=>(p.tasks||[]).forEach(t=>out.push(Object.assign({},t,{_proj:p.name,_pid:p.id,_gate:p.gate}))));
+  GTASKS.forEach(t=>out.push(Object.assign({},t,{_proj:null,_pid:null,_gate:null,_general:true})));
   return out;
 }
+const GT_CATS=["Báo cáo / Hành chính","Bảo trì / Sửa chữa","Kiểm kê vật tư","Đào tạo / Học tập","Hỗ trợ sản xuất","Cải tiến / Kaizen","Khác"];
 function taskLate(t){
   if(t.status==="Hoàn thành") return false;
   const d=daysBetween(t.deadline);
@@ -558,8 +562,11 @@ function viewTasks(){
   const term=(searchTerms.task||"").toLowerCase();
   const fp=searchTerms.taskPerson||"all";
   const fs=searchTerms.taskStatus||"open";
+  const ft=searchTerms.taskType||"all";
   let list=allTasks();
-  if(term) list=list.filter(t=>String(t.task||"").toLowerCase().includes(term)||String(t._proj).toLowerCase().includes(term)||String(t.person||"").toLowerCase().includes(term));
+  if(ft==="proj") list=list.filter(t=>!t._general);
+  else if(ft==="general") list=list.filter(t=>t._general);
+  if(term) list=list.filter(t=>String(t.task||"").toLowerCase().includes(term)||String(t._proj||t.category||"").toLowerCase().includes(term)||String(t.person||"").toLowerCase().includes(term));
   if(fp!=="all") list=list.filter(t=>sameName(t.person,fp));
   if(fs==="open") list=list.filter(t=>t.status!=="Hoàn thành");
   else if(fs==="late") list=list.filter(taskLate);
@@ -582,6 +589,7 @@ function viewTasks(){
       <div class="kpi-box ${late?'warn':'ok'}"><div class="num">${late}</div><div class="lbl">Trễ hạn</div></div>
       <div class="kpi-box ok"><div class="num">${done}</div><div class="lbl">Hoàn thành</div></div>
       <div class="kpi-box"><div class="num">${all.length?Math.round(done/all.length*100):0}%</div><div class="lbl">Tỷ lệ hoàn thành</div></div>
+      <div class="kpi-box"><div class="num">${all.filter(t=>t._general).length}</div><div class="lbl">Việc ngoài dự án</div></div>
     </div>
     <div class="card">
       <h2>Công việc đã giao <span class="sub">Task → Người → Deadline → Output → Kiểm tra</span></h2>
@@ -597,6 +605,11 @@ function viewTasks(){
           <option value="done" ${fs==='done'?'selected':''}>Hoàn thành</option>
           <option value="all" ${fs==='all'?'selected':''}>Tất cả</option>
         </select>
+        <select onchange="searchTerms.taskType=this.value;render();">
+          <option value="all" ${ft==='all'?'selected':''}>Cả 2 loại việc</option>
+          <option value="proj" ${ft==='proj'?'selected':''}>Chỉ việc thuộc dự án</option>
+          <option value="general" ${ft==='general'?'selected':''}>Chỉ việc ngoài dự án</option>
+        </select>
         <div class="spacer"></div>
         <button class="btn" onclick="exportTasksCsv()">Xuất CSV</button>
         <button class="btn primary" onclick="newTaskModal()">+ Giao việc mới</button>
@@ -606,12 +619,14 @@ function viewTasks(){
           const dd=daysBetween(t.deadline);
           return `<tr class="${taskLate(t)?'':''}">
             <td data-label="Công việc"><b>${esc(t.task||'')}</b>${t.note?`<div class="detail-row">${esc(t.note)}</div>`:''}</td>
-            <td data-label="Dự án"><span class="badge gate${t._gate||1}">G${esc(t._gate||'?')}</span> ${esc(t._proj)}</td>
+            <td data-label="Dự án">${t._general
+              ? `<span class="badge role-kysu">Ngoài dự án</span><div class="detail-row">${esc(t.category||'Khác')}</div>`
+              : `<span class="badge gate${t._gate||1}">G${esc(t._gate||'?')}</span> ${esc(t._proj)}`}</td>
             <td data-label="Người">${esc(t.person||'—')}</td>
             <td data-label="Deadline">${esc(t.deadline||'—')}${taskLate(t)?` <span class="badge crit">Trễ ${Math.abs(dd)}d</span>`:(dd!==null&&dd>=0&&dd<=3&&t.status!=="Hoàn thành"?` <span class="badge check">Còn ${dd}d</span>`:'')}</td>
             <td data-label="Trạng thái"><span class="badge ${t.status==='Hoàn thành'?'released':(taskLate(t)?'crit':'check')}">${esc(t.status||'')}</span></td>
             <td data-label="Output"><div class="detail-row">${esc(t.output||'—')}</div>${t.checkedBy?`<div class="detail-row">KT: ${esc(t.checkedBy)}</div>`:''}</td>
-            <td data-label=""><button class="btn small" onclick="editTaskModal('${t._pid}','${t.id}')">Sửa</button></td>
+            <td data-label=""><button class="btn small" onclick="${t._general?`editGTaskModal('${t.id}')`:`editTaskModal('${t._pid}','${t.id}')`}">Sửa</button></td>
           </tr>`;
         }).join("")}
       </tbody></table>`:`<div class="empty-state"><div class="icon">📋</div>Không có công việc nào khớp bộ lọc.</div>`}
@@ -642,8 +657,13 @@ function newTaskModal(){
     <div class="form-row">
       <div class="fld full"><label>Nội dung công việc *</label>
         <textarea id="tk_task" rows="2" placeholder="VD: Thiết kế mạch điều khiển motor M01"></textarea></div>
-      <div class="fld"><label>Thuộc dự án *</label><select id="tk_proj">
-        ${PROJECTS.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join("")}</select></div>
+      <div class="fld"><label>Loại công việc *</label>
+        <select id="tk_proj" onchange="document.getElementById('gtCatRow').style.display=(this.value==='__general__')?'block':'none';">
+          <option value="__general__">⭐ Việc ngoài dự án (không thuộc dự án nào)</option>
+          ${PROJECTS.map(p=>`<option value="${p.id}">${esc(p.customer?p.customer+' — ':'')}${esc(p.name)}</option>`).join("")}
+        </select></div>
+      <div class="fld" id="gtCatRow"><label>Nhóm việc</label>
+        <select id="tk_cat">${GT_CATS.map(c=>`<option>${c}</option>`).join("")}</select></div>
       <div class="fld"><label>Người thực hiện *</label><input type="text" id="tk_person" list="stfT">
         <datalist id="stfT">${names.map(n=>`<option value="${esc(n)}"></option>`).join("")}</datalist></div>
       <div class="fld"><label>Deadline</label><input type="date" id="tk_deadline"></div>
@@ -661,6 +681,21 @@ async function saveNewTask(){
   const pid=document.getElementById("tk_proj").value;
   const person=document.getElementById("tk_person").value.trim();
   if(!task||!person){alert("Nhập nội dung công việc và người thực hiện.");return;}
+  /* ---- Viec NGOAI du an ---- */
+  if(pid==="__general__"){
+    const t={id:uid("gt"),task,person,category:document.getElementById("tk_cat").value,
+      deadline:document.getElementById("tk_deadline").value,status:document.getElementById("tk_status").value,
+      output:document.getElementById("tk_output").value.trim(),checkedBy:document.getElementById("tk_checked").value.trim(),
+      note:document.getElementById("tk_note").value};
+    try{
+      busy(true,"Đang lưu…");
+      const d=await api("saveGeneralTask",{task:t});
+      GTASKS.push(d.task); closeModal(); render();
+      toast("Đã giao việc ngoài dự án",esc(person),"success");
+    }catch(e){ toast("Lỗi",esc(e.message),"err"); }
+    finally{ busy(false); }
+    return;
+  }
   const p=PROJECTS.find(x=>x.id===pid);
   if(!p){alert("Chọn dự án.");return;}
   if(!p.tasks) p.tasks=[];
@@ -718,6 +753,68 @@ async function delTaskCentral(pid,tid){
   CUR=p;
   if(await saveProject()){ closeModal(); toast("Đã xoá","","warn"); }
 }
+function editGTaskModal(id){
+  const t=GTASKS.find(x=>x.id===id);
+  if(!t) return;
+  const names=(META.staff||[]).map(s=>s.name);
+  const full=isLeader();
+  const mine=sameName(t.person,ME.name);
+  if(!full&&!mine){ alert("Bạn chỉ cập nhật được công việc của mình."); return; }
+  openModalHtml(`
+    <h3>Công việc ngoài dự án</h3>
+    <div class="detail-row" style="margin-bottom:10px;">
+      <span class="badge role-kysu">Ngoài dự án</span> ${esc(t.category||'Khác')}
+      ${t.assignedBy?` · Giao bởi ${esc(t.assignedBy)}`:''}${t.updatedBy?` · Cập nhật: ${esc(t.updatedBy)}`:''}</div>
+    ${!full?`<div class="notice">Anh/chị cập nhật được <b>trạng thái</b> và <b>ghi chú</b>. Nội dung và deadline do người giao việc quản lý.</div>`:''}
+    <div class="form-row">
+      <div class="fld full"><label>Nội dung</label><textarea id="gt_task" rows="2" ${full?'':'disabled'}>${esc(t.task||'')}</textarea></div>
+      <div class="fld"><label>Nhóm việc</label><select id="gt_cat" ${full?'':'disabled'}>
+        ${GT_CATS.map(c=>`<option ${t.category===c?'selected':''}>${c}</option>`).join("")}</select></div>
+      <div class="fld"><label>Người thực hiện</label><input type="text" id="gt_person" value="${esc(t.person||'')}" list="stfG" ${full?'':'disabled'}>
+        <datalist id="stfG">${names.map(n=>`<option value="${esc(n)}"></option>`).join("")}</datalist></div>
+      <div class="fld"><label>Deadline</label><input type="date" id="gt_deadline" value="${esc(t.deadline||'')}" ${full?'':'disabled'}></div>
+      <div class="fld"><label>Trạng thái</label><select id="gt_status">${TASK_STATUS.map(s=>`<option ${t.status===s?'selected':''}>${s}</option>`).join("")}</select></div>
+      <div class="fld full"><label>Output</label><input type="text" id="gt_output" value="${esc(t.output||'')}" ${full?'':'disabled'}></div>
+      <div class="fld"><label>Người kiểm tra</label><input type="text" id="gt_checked" value="${esc(t.checkedBy||'')}" ${full?'':'disabled'}></div>
+      <div class="fld full"><label>Ghi chú</label><textarea id="gt_note" rows="2">${esc(t.note||'')}</textarea></div>
+    </div>
+    <div class="modal-actions">
+      ${full?`<button class="btn danger" onclick="delGTask('${id}')">Xoá</button>`:''}
+      <div class="spacer"></div>
+      <button class="btn" onclick="closeModal()">Huỷ</button>
+      <button class="btn primary" onclick="saveGTask('${id}')">Lưu</button></div>`);
+}
+async function saveGTask(id){
+  const t=GTASKS.find(x=>x.id===id);
+  const full=isLeader();
+  const upd={id, status:document.getElementById("gt_status").value, note:document.getElementById("gt_note").value};
+  if(full){
+    upd.task=document.getElementById("gt_task").value.trim()||t.task;
+    upd.category=document.getElementById("gt_cat").value;
+    upd.person=document.getElementById("gt_person").value.trim();
+    upd.deadline=document.getElementById("gt_deadline").value;
+    upd.output=document.getElementById("gt_output").value.trim();
+    upd.checkedBy=document.getElementById("gt_checked").value.trim();
+  }
+  try{
+    busy(true,"Đang lưu…");
+    const d=await api("saveGeneralTask",{task:upd});
+    const i=GTASKS.findIndex(x=>x.id===id);
+    if(i>=0) GTASKS[i]=d.task;
+    closeModal(); render(); toast("Đã cập nhật","","success");
+  }catch(e){ toast("Lỗi",esc(e.message),"err"); }
+  finally{ busy(false); }
+}
+async function delGTask(id){
+  if(!confirm("Xoá công việc này?")) return;
+  try{
+    busy(true,"Đang xoá…");
+    await api("deleteGeneralTask",{id});
+    GTASKS=GTASKS.filter(x=>x.id!==id);
+    closeModal(); render(); toast("Đã xoá","","warn");
+  }catch(e){ toast("Lỗi",esc(e.message),"err"); }
+  finally{ busy(false); }
+}
 function csvText(rows,headers){
   const e=v=>{v=(v===undefined||v===null)?"":String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
   return "\uFEFF"+[headers.map(h=>e(h.label)).join(",")].concat(rows.map(r=>headers.map(h=>e(r[h.key])).join(","))).join("\n");
@@ -728,10 +825,11 @@ function dlText(name,text,mime){
   a.href=u;a.download=name;a.click();URL.revokeObjectURL(u);
 }
 function exportTasksCsv(){
-  const rows=allTasks().map(t=>({task:t.task,proj:t._proj,person:t.person,deadline:t.deadline,
+  const rows=allTasks().map(t=>({task:t.task,loai:t._general?"Ngoài dự án":"Thuộc dự án",
+    proj:t._general?(t.category||"Khác"):t._proj,person:t.person,deadline:t.deadline,
     status:t.status,output:t.output,checkedBy:t.checkedBy,assignedBy:t.assignedBy,late:taskLate(t)?"TRỄ":""}));
   dlText("cong-viec-"+todayStr()+".csv",csvText(rows,[
-    {key:"task",label:"Công việc"},{key:"proj",label:"Dự án"},{key:"person",label:"Người thực hiện"},
+    {key:"task",label:"Công việc"},{key:"loai",label:"Loại"},{key:"proj",label:"Dự án / Nhóm việc"},{key:"person",label:"Người thực hiện"},
     {key:"deadline",label:"Deadline"},{key:"status",label:"Trạng thái"},{key:"output",label:"Output"},
     {key:"checkedBy",label:"Người kiểm tra"},{key:"assignedBy",label:"Người giao"},{key:"late",label:"Trễ hạn"}]));
 }
@@ -1638,7 +1736,7 @@ async function start(){
   try{
     busy(true,"Đang kết nối máy chủ…");
     const d=await api("getAll");
-    ME=d.me; PROJECTS=d.projects||[]; META=d.meta||{staff:[],config:null};
+    ME=d.me; PROJECTS=d.projects||[]; META=d.meta||{staff:[],config:null}; GTASKS=d.generalTasks||[];
     lastSync=new Date();
     document.getElementById("loginScreen").style.display="none";
     document.getElementById("app").style.display="block";
@@ -1778,9 +1876,7 @@ function viewMyWork(){
     nên hệ thống chưa nhận ra dự án nào là của anh/chị.<br>
     Vui lòng báo Trưởng phòng sửa lại <b>Tên hiển thị</b> của tài khoản cho trùng với tên trong mục Nhân viên và tên PIC của dự án.</div>`:'';
   const needFix=mine.filter(p=>(p.feedback||[]).some(f=>!f.resolved&&String(f.gate)===String(p.gate)));
-  const tasks=[];
-  mine.forEach(p=>(p.tasks||[]).forEach(t=>{if(sameName(t.person,ME.name)||!t.person)tasks.push({...t,proj:p.name,projId:p.id});}));
-  PROJECTS.forEach(p=>(p.tasks||[]).forEach(t=>{if(sameName(t.person,ME.name)&&!sameName(p.manager,ME.name))tasks.push({...t,proj:p.name,projId:p.id});}));
+  const tasks=allTasks().filter(t=>sameName(t.person,ME.name));
   const open=tasks.filter(t=>t.status!=="Hoàn thành");
   return `
     ${warnName}
@@ -1804,15 +1900,16 @@ function viewMyWork(){
     </div>
     <div class="card">
       <h2>Công việc được giao</h2>
-      ${tasks.length?`<table><thead><tr><th>Công việc</th><th>Dự án</th><th>Deadline</th><th>Trạng thái</th></tr></thead><tbody>
-        ${tasks.map(t=>{const dd=daysBetween(t.deadline);const late=t.status!=="Hoàn thành"&&dd!==null&&dd<0;
-        return `<tr><td data-label="Công việc">${esc(t.task||'')}</td><td data-label="Dự án">${esc(t.proj)}</td>
-        <td data-label="Deadline">${esc(t.deadline||'—')}${late?` <span class="badge crit">Trễ ${Math.abs(dd)}d</span>`:''}</td>
-        <td data-label="Trạng thái"><span class="badge ${t.status==='Hoàn thành'?'released':'check'}">${esc(t.status||'')}</span></td></tr>`;}).join("")}
+      ${tasks.length?`<table><thead><tr><th>Công việc</th><th>Thuộc</th><th>Deadline</th><th>Trạng thái</th><th></th></tr></thead><tbody>
+        ${tasks.map(t=>{const dd=daysBetween(t.deadline);const late=taskLate(t);
+        return `<tr><td data-label="Công việc"><b>${esc(t.task||'')}</b>${t.output?`<div class="detail-row">Output: ${esc(t.output)}</div>`:''}</td>
+        <td data-label="Thuộc">${t._general?`<span class="badge role-kysu">Ngoài dự án</span><div class="detail-row">${esc(t.category||'Khác')}</div>`:`<span class="badge gate${t._gate||1}">G${esc(t._gate||'?')}</span> ${esc(t._proj)}`}</td>
+        <td data-label="Deadline">${esc(t.deadline||'—')}${late?` <span class="badge crit">Trễ ${Math.abs(dd)}d</span>`:(dd!==null&&dd>=0&&dd<=3&&t.status!=="Hoàn thành"?` <span class="badge check">Còn ${dd}d</span>`:'')}</td>
+        <td data-label="Trạng thái"><span class="badge ${t.status==='Hoàn thành'?'released':(late?'crit':'check')}">${esc(t.status||'')}</span></td>
+        <td data-label=""><button class="btn small" onclick="${t._general?`editGTaskModal('${t.id}')`:`editTaskModal('${t._pid}','${t.id}')`}">Cập nhật</button></td></tr>`;}).join("")}
       </tbody></table>`:`<div class="empty-state">Chưa có công việc nào.</div>`}
     </div>`;
 }
 </script>
-
-
-</body></html>
+</body>
+</html>
