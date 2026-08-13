@@ -3,583 +3,1270 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kho VNT — Quản lý 5S</title>
+<title>VNT · Quản lý Quy trình Kỹ thuật Điện</title>
+<meta name="theme-color" content="#0b1b2b">
 <style>
   :root{
-    --bg:#0e1116; --card:#171c24; --card2:#1f2630; --line:#2b3542;
-    --ink:#eef2f6; --sub:#93a1b2; --mut:#657283;
-    --grn:#33a06f; --grn-d:#0f6e56; --grn-bg:#12352a;
-    --amb:#e0a020; --amb-bg:#3a2e0f; --red:#e2564f; --red-bg:#3a1614;
-    --blu:#3d8fdd; --r:12px;
+    --ink:#0b1b2b; --ink2:#132c44; --steel:#1d4b7a;
+    --accent:#2f81f7; --accent2:#5aa2ff; --accent-dark:#1a5fc4;
+    --amber:#f0a020; --amber-bg:#fff6e5;
+    --green:#12a150; --green-bg:#e8f8ef;
+    --red:#e5484d; --red-bg:#fdecec;
+    --violet:#7c5cff;
+    --bg:#eef2f7; --card:#fff; --border:#e3e9f0;
+    --text:#16202c; --text-light:#68788c; --muted:#93a3b8;
+    --shadow:0 1px 2px rgba(11,27,43,.05),0 4px 16px rgba(11,27,43,.06);
+    --shadow-lg:0 8px 34px rgba(11,27,43,.14);
   }
-  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  body{margin:0;background:var(--bg);color:var(--ink);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;font-size:15px;}
-  .wrap{max-width:900px;margin:0 auto;padding:12px 12px 96px;}
-  header{position:sticky;top:0;z-index:20;background:var(--bg);padding-top:8px;}
-  .top{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
-  .logo{width:38px;height:38px;border-radius:10px;background:var(--grn);color:#052015;
-    font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center;}
-  h1{font-size:18px;margin:0;font-weight:700;}
-  h1 small{display:block;font-size:11px;color:var(--sub);font-weight:400;letter-spacing:.5px;}
-  .lockbtn{margin-left:auto;width:42px;height:42px;border-radius:11px;border:1px solid var(--line);
-    background:var(--card);font-size:19px;cursor:pointer;flex:0 0 auto;}
-  .lockbtn.unlocked{background:var(--grn-bg);border-color:var(--grn-d);}
-  body.readonly .bar .add,body.readonly #btnReset,body.readonly #btnImport{display:none;}
-  body.readonly .newbtn,body.readonly #sDel{display:none!important;}
-  .robanner{background:var(--grn-bg);color:var(--grn);font-size:12px;font-weight:600;text-align:center;
-    padding:6px;border-radius:9px;margin-bottom:9px;border:1px solid var(--grn-d);}
-  body:not(.readonly) .robanner{display:none;}
-  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:10px;}
-  .kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 6px;text-align:center;cursor:pointer;}
-  .kpi .n{font-size:19px;font-weight:700;line-height:1.1;}
-  .kpi .l{font-size:10.5px;color:var(--sub);margin-top:2px;}
-  .kpi.on{border-color:var(--grn);background:var(--grn-bg);}
-  .kpi.warn .n{color:var(--amb);} .kpi.err .n{color:var(--red);}
-  .searchrow{display:flex;gap:7px;margin-bottom:9px;}
-  .search{flex:1;height:44px;border-radius:var(--r);border:1px solid var(--line);background:var(--card);
-    color:var(--ink);padding:0 14px;font-size:16px;outline:none;}
-  .search:focus{border-color:var(--grn);}
-  .iconbtn{width:44px;height:44px;border-radius:var(--r);border:1px solid var(--line);background:var(--card);
-    color:var(--sub);font-size:18px;cursor:pointer;flex:0 0 auto;}
-  .chips{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none;}
-  .chips::-webkit-scrollbar{display:none;}
-  .chip{flex:0 0 auto;padding:7px 13px;border-radius:20px;border:1px solid var(--line);background:var(--card);
-    color:var(--sub);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;}
-  .chip.on{background:var(--grn);border-color:var(--grn);color:#052015;}
-  .list{margin-top:12px;}
-  .grp{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:1px;margin:16px 2px 8px;}
-  .item{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:11px 13px;
-    margin-bottom:8px;display:flex;gap:11px;align-items:center;cursor:pointer;transition:transform .07s;}
-  .item:active{transform:scale(.99);}
-  .vt{flex:0 0 auto;min-width:52px;height:44px;border-radius:9px;background:var(--card2);border:1px solid var(--line);
-    display:flex;flex-direction:column;align-items:center;justify-content:center;}
-  .vt b{font-size:13px;color:var(--grn);font-weight:700;} .vt span{font-size:9px;color:var(--mut);}
-  .info{flex:1;min-width:0;}
-  .info .ma{font-size:14.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .info .ten{font-size:12.5px;color:var(--sub);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-  .info .meta{font-size:11px;color:var(--mut);margin-top:1px;}
-  .qtybox{flex:0 0 auto;text-align:right;}
-  .qtybox .q{font-size:17px;font-weight:700;} .qtybox .u{font-size:10px;color:var(--mut);}
-  .qtybox.low .q{color:var(--amb);} .qtybox.zero .q{color:var(--red);}
-  .empty{text-align:center;color:var(--mut);padding:40px 20px;font-style:italic;}
-  mark{background:var(--amb);color:#1a1204;border-radius:3px;padding:0 2px;}
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;}
 
-  .backdrop{position:fixed;inset:0;background:rgba(3,6,10,.65);z-index:40;display:none;}
-  .backdrop.show{display:block;}
-  .sheet{position:fixed;left:0;right:0;bottom:0;z-index:50;background:var(--card);border-radius:18px 18px 0 0;
-    border-top:1px solid var(--line);padding:16px 16px 26px;transform:translateY(100%);
-    transition:transform .22s cubic-bezier(.2,.7,.3,1);max-width:900px;margin:0 auto;max-height:88vh;overflow-y:auto;}
-  .sheet.show{transform:translateY(0);}
-  .grip{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 14px;}
-  .shd{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
-  .shd .pill{background:var(--grn-bg);color:var(--grn);font-weight:700;font-size:14px;padding:6px 13px;border-radius:9px;}
-  .shd .x{margin-left:auto;width:36px;height:36px;border:none;background:var(--card2);color:var(--sub);
-    border-radius:9px;font-size:20px;cursor:pointer;}
-  .fl{display:block;font-size:11px;color:var(--sub);margin:0 0 5px 2px;text-transform:uppercase;letter-spacing:.5px;}
-  .field{margin-bottom:13px;}
-  .inp,textarea{width:100%;background:var(--card2);border:1px solid var(--line);border-radius:10px;color:var(--ink);
-    font-size:16px;padding:11px 12px;outline:none;font-family:inherit;}
-  .inp:focus,textarea:focus{border-color:var(--grn);}
-  .two{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-  .three{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
-  .stepqty{display:flex;align-items:center;gap:8px;}
-  .stepqty button{width:46px;height:46px;border-radius:10px;border:1px solid var(--line);background:var(--card2);
-    color:var(--ink);font-size:22px;cursor:pointer;flex:0 0 auto;}
-  .stepqty input{flex:1;text-align:center;font-size:20px;font-weight:700;height:46px;}
-  .actions{display:flex;gap:9px;margin-top:8px;}
-  .btn{flex:1;height:48px;border-radius:11px;border:none;font-size:16px;font-weight:700;cursor:pointer;}
-  .btn.primary{background:var(--grn);color:#052015;} .btn.primary:active{background:var(--grn-d);}
-  .btn.ghost{flex:0 0 auto;width:52px;background:var(--card2);color:var(--red);}
-  .newbtn{width:100%;height:46px;border-radius:11px;border:1px dashed var(--line);background:transparent;
-    color:var(--sub);font-size:14px;font-weight:600;cursor:pointer;margin-top:6px;}
+  /* ===== LOGIN ===== */
+  #loginScreen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;
+    background:linear-gradient(135deg,var(--ink) 0%,var(--ink2) 55%,var(--steel) 100%);position:relative;overflow:hidden;}
+  #loginScreen::before{content:"";position:absolute;width:640px;height:640px;border-radius:50%;top:-260px;right:-200px;
+    background:radial-gradient(circle,rgba(47,129,247,.28),transparent 68%);}
+  .login-box{background:#fff;border-radius:18px;padding:34px 30px;width:100%;max-width:400px;box-shadow:var(--shadow-lg);position:relative;z-index:1;}
+  .login-logo{width:58px;height:58px;border-radius:15px;background:linear-gradient(135deg,var(--ink),var(--steel));
+    display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:28px;}
+  .login-box h1{font-size:18px;font-weight:800;text-align:center;letter-spacing:-.3px;}
+  .login-box .sub{font-size:12.5px;color:var(--text-light);text-align:center;margin:5px 0 22px;}
+  .fld{margin-bottom:14px;}
+  .fld label{display:block;font-size:11px;font-weight:800;color:var(--text-light);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;}
+  .fld input,.fld select,.fld textarea{width:100%;padding:11px 13px;border:1px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;background:#fbfcfe;}
+  .fld input:focus,.fld select:focus,.fld textarea:focus{outline:none;border-color:var(--accent);background:#fff;box-shadow:0 0 0 3px rgba(47,129,247,.13);}
+  .login-err{background:var(--red-bg);border:1px solid #f4cccd;color:#8a2a22;padding:10px 13px;border-radius:9px;font-size:12.5px;margin-bottom:14px;display:none;}
+  .login-hint{font-size:11.5px;color:var(--muted);text-align:center;margin-top:16px;line-height:1.7;}
 
-  .bar{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);border-top:1px solid var(--line);
-    padding:9px 12px calc(9px + env(safe-area-inset-bottom));display:flex;gap:8px;max-width:900px;margin:0 auto;}
-  .bar button{flex:1;height:46px;border-radius:11px;border:1px solid var(--line);background:var(--card2);color:var(--ink);
-    font-size:13px;font-weight:700;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;}
-  .bar button span.ic{font-size:16px;} .bar button:active{background:var(--line);}
-  .bar button.add{background:var(--grn);color:#052015;border-color:var(--grn);}
-  .toast{position:fixed;bottom:82px;left:50%;transform:translateX(-50%) translateY(20px);z-index:60;background:var(--grn);
-    color:#052015;font-weight:700;font-size:14px;padding:11px 20px;border-radius:11px;opacity:0;pointer-events:none;transition:all .2s;}
-  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-  .toast.err{background:var(--red);color:#fff;}
-  input[type=file]{display:none;}
-  .viewtoggle{display:flex;gap:6px;margin-bottom:10px;background:var(--card);border:1px solid var(--line);
-    border-radius:12px;padding:4px;}
-  .vt-btn{flex:1;height:38px;border:none;border-radius:9px;background:transparent;color:var(--sub);
-    font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;}
-  .vt-btn span{font-size:15px;}
-  .vt-btn.on{background:var(--grn);color:#052015;}
-  .mapview{margin-top:8px;}
-  .shelf{margin-bottom:20px;}
-  .shelf-hd{display:flex;align-items:center;gap:9px;margin-bottom:9px;}
-  .shelf-hd .badge{width:40px;height:40px;border-radius:10px;background:var(--grn-bg);color:var(--grn);
-    font-weight:800;font-size:18px;display:flex;align-items:center;justify-content:center;}
-  .shelf-hd .nm{font-size:15px;font-weight:700;}
-  .shelf-hd .nm small{display:block;font-size:11px;color:var(--sub);font-weight:400;}
-  .shelf-frame{background:var(--card);border:2px solid var(--line);border-radius:14px;padding:9px;}
-  .floor-lbl{font-size:10px;color:var(--mut);letter-spacing:1px;margin:3px 2px 5px;}
-  .floor-row{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-bottom:9px;}
-  .floor-row:last-child{margin-bottom:2px;}
-  .cbin{position:relative;border-radius:10px;border:1.5px solid var(--line);background:var(--card2);
-    min-height:72px;padding:7px 7px 6px;cursor:pointer;display:flex;flex-direction:column;transition:transform .07s;overflow:hidden;}
-  .cbin:active{transform:scale(.96);}
-  .cbin.has{background:#16302a;border-color:var(--grn-d);}
-  .cbin.low{background:#33290d;border-color:#7a5c14;}
-  .cbin.zero{background:#331614;border-color:#7a2420;}
-  .cbin .code{font-size:11px;font-weight:800;color:var(--grn);letter-spacing:.3px;}
-  .cbin.empty-b .code{color:var(--mut);}
-  .cbin.low .code{color:var(--amb);} .cbin.zero .code{color:var(--red);}
-  .cbin .cnt{font-size:10px;color:var(--sub);margin-top:1px;}
-  .cbin .prod{font-size:10.5px;color:var(--ink);margin-top:3px;line-height:1.25;overflow:hidden;
-    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
-  .cbin .emptytag{font-size:10px;color:var(--mut);font-style:italic;margin-top:auto;}
-  .cbin .nqty{position:absolute;top:5px;right:6px;font-size:9px;background:var(--line);color:var(--ink);
-    border-radius:8px;padding:1px 5px;font-weight:700;}
-  .legend{display:flex;gap:14px;flex-wrap:wrap;margin:2px 2px 14px;font-size:11px;color:var(--sub);}
-  .legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px;border:1px solid var(--line);}
-  .lg-has{background:#16302a;border-color:var(--grn-d)!important;} .lg-low{background:#33290d;border-color:#7a5c14!important;}
-  .lg-zero{background:#331614;border-color:#7a2420!important;} .lg-emp{background:var(--card2);}
-  .binlist{margin-top:2px;}
-  .binlist .bl-item{display:flex;gap:10px;align-items:center;padding:9px 4px;border-bottom:1px solid var(--line);cursor:pointer;}
-  .binlist .bl-item:active{background:var(--card2);}
-  .bl-item .bma{font-size:14px;font-weight:600;} .bl-item .bten{font-size:12px;color:var(--sub);}
-  .bl-item .bq{margin-left:auto;text-align:right;font-size:15px;font-weight:700;}
-  .bl-item .bq small{display:block;font-size:9px;color:var(--mut);font-weight:400;}
-  .modal{position:fixed;inset:0;z-index:70;background:rgba(3,6,10,.7);display:none;align-items:center;justify-content:center;padding:20px;}
-  .modal.show{display:flex;}
-  .modal .box{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;max-width:420px;width:100%;}
-  .modal h3{margin:0 0 8px;font-size:17px;} .modal p{color:var(--sub);font-size:13.5px;margin:0 0 16px;line-height:1.6;}
-  .modal .mbtns{display:flex;gap:9px;} .modal .mbtns .btn{height:44px;font-size:15px;}
-  .modal .btn.cancel{background:var(--card2);color:var(--sub);}
+  /* ===== APP SHELL ===== */
+  #app{display:none;}
+  header{background:linear-gradient(120deg,var(--ink) 0%,var(--ink2) 55%,var(--steel) 100%);color:#fff;
+    padding:16px 22px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;position:relative;overflow:hidden;}
+  header::after{content:"";position:absolute;right:-70px;top:-90px;width:290px;height:290px;border-radius:50%;
+    background:radial-gradient(circle,rgba(47,129,247,.32),transparent 68%);}
+  header>*{position:relative;z-index:1;}
+  header h1{font-size:17px;font-weight:800;letter-spacing:-.2px;}
+  header .sub{font-size:11.5px;opacity:.72;margin-top:2px;}
+  .userchip{display:flex;align-items:center;gap:9px;background:rgba(255,255,255,.11);border:1px solid rgba(255,255,255,.18);
+    border-radius:24px;padding:5px 6px 5px 13px;}
+  .userchip .nm{font-size:12.5px;font-weight:700;}
+  .userchip .rl{font-size:10px;opacity:.75;}
+  .avatar{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--accent2),var(--accent-dark));
+    display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;}
+  nav.tabs{display:flex;background:#fff;border-bottom:1px solid var(--border);padding:0 16px;overflow-x:auto;position:sticky;top:0;z-index:50;box-shadow:0 1px 3px rgba(11,27,43,.05);}
+  nav.tabs::-webkit-scrollbar{height:0;}
+  nav.tabs button{background:none;border:none;padding:14px 15px;font-size:13.5px;font-weight:700;color:var(--text-light);
+    cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;font-family:inherit;}
+  nav.tabs button.active{color:var(--accent-dark);border-bottom-color:var(--accent);}
+  nav.tabs button:hover{background:#f7faff;}
+  nav.tabs .dot{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;margin-left:6px;
+    border-radius:9px;background:var(--red);color:#fff;font-size:10.5px;font-weight:800;}
+  main{padding:20px;max-width:1440px;margin:0 auto;}
+
+  /* ===== COMMON ===== */
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:var(--shadow);}
+  .card h2{font-size:15px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+  .card h2 .sub{font-size:11.5px;font-weight:500;color:var(--text-light);}
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:9px;border:1px solid var(--border);
+    background:#fff;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--text);font-family:inherit;transition:.15s;}
+  .btn:hover{background:#f2f6fb;transform:translateY(-1px);}
+  .btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent-dark));border-color:transparent;color:#fff;box-shadow:0 2px 8px rgba(47,129,247,.3);}
+  .btn.success{background:linear-gradient(135deg,#16b95c,var(--green));border-color:transparent;color:#fff;}
+  .btn.danger{color:var(--red);border-color:#f4cccd;}
+  .btn.danger:hover{background:var(--red-bg);}
+  .btn.small{padding:5px 10px;font-size:11.5px;border-radius:7px;}
+  .btn:disabled{opacity:.45;cursor:not-allowed;transform:none;}
+  .btn.wide{width:100%;justify-content:center;padding:12px;font-size:14px;}
+  header .btn{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.2);color:#eaf2fc;}
+  header .btn:hover{background:rgba(255,255,255,.2);}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{background:#f6f9fc;text-align:left;padding:10px 11px;border-bottom:2px solid var(--border);font-size:10.5px;
+    color:var(--text-light);text-transform:uppercase;letter-spacing:.6px;font-weight:800;}
+  td{padding:11px;border-bottom:1px solid var(--border);vertical-align:middle;}
+  tr:hover td{background:#f9fbfe;}
+  tr.mine td{background:#f4f9ff;}
+  tr.mine:hover td{background:#eaf3ff;}
+  .badge{display:inline-block;padding:4px 10px;border-radius:20px;font-size:10.5px;font-weight:800;white-space:nowrap;}
+  .badge.wip{background:#eef2f7;color:#64748b;}
+  .badge.check{background:var(--amber-bg);color:#b9750a;}
+  .badge.approved{background:#e7f0ff;color:var(--accent-dark);}
+  .badge.released{background:var(--green-bg);color:var(--green);}
+  .badge.crit{background:var(--red);color:#fff;}
+  .badge.open{background:var(--amber-bg);color:#b9750a;}
+  .badge.closed{background:var(--green-bg);color:var(--green);}
+  .badge.gate1{background:#eef2f7;color:#64748b;}
+  .badge.gate2{background:#e7f0ff;color:var(--accent-dark);}
+  .badge.gate3{background:var(--amber-bg);color:#b9750a;}
+  .badge.gate4{background:#f3ecff;color:#6841e0;}
+  .badge.gate5{background:var(--green-bg);color:var(--green);}
+  .badge.role-truongphong{background:#f3ecff;color:#6841e0;}
+  .badge.role-leader{background:#e7f0ff;color:var(--accent-dark);}
+  .badge.role-kysu{background:#eef2f7;color:#64748b;}
+  .progress-wrap{background:#e9eef5;border-radius:8px;height:8px;overflow:hidden;}
+  .progress-bar{height:100%;background:linear-gradient(90deg,#16b95c,var(--green));border-radius:8px;transition:width .4s;}
+  .toolbar{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:15px;}
+  .toolbar input[type=text],.toolbar select{padding:8px 12px;border:1px solid var(--border);border-radius:9px;font-size:13px;min-width:160px;background:#fbfcfe;font-family:inherit;}
+  .spacer{flex:1;}
+  .detail-row{font-size:11.5px;color:var(--text-light);}
+  .detail-row b{color:var(--text);}
+  .empty-state{text-align:center;padding:44px 20px;color:var(--text-light);}
+  .empty-state .icon{font-size:34px;margin-bottom:10px;opacity:.55;}
+  .grid-kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:13px;margin-bottom:18px;}
+  .kpi-box{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px;position:relative;overflow:hidden;box-shadow:var(--shadow);}
+  .kpi-box::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent);}
+  .kpi-box.warn::before{background:var(--red);} .kpi-box.warn .num{color:var(--red);}
+  .kpi-box.ok::before{background:var(--green);} .kpi-box.ok .num{color:var(--green);}
+  .kpi-box.mid::before{background:var(--amber);} .kpi-box.mid .num{color:var(--amber);}
+  .kpi-box .num{font-size:29px;font-weight:800;color:var(--ink);letter-spacing:-1px;line-height:1.1;}
+  .kpi-box .lbl{font-size:11.5px;color:var(--text-light);margin-top:3px;font-weight:600;}
+  .notice{background:var(--amber-bg);border:1px solid #f5dcae;border-left:4px solid var(--amber);color:#7a4e07;
+    padding:12px 15px;border-radius:10px;font-size:12.5px;margin-bottom:14px;line-height:1.65;}
+  .notice.danger{background:var(--red-bg);border-color:#f4cccd;border-left-color:var(--red);color:#8a2a22;}
+  .notice.info{background:#eaf2ff;border-color:#c9dcfb;border-left-color:var(--accent);color:#134a9c;}
+  .notice.ok{background:var(--green-bg);border-color:#bfe8d1;border-left-color:var(--green);color:#0f6b3c;}
+
+  /* ===== GATE ===== */
+  .gate-track{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0;}
+  .gate-node{flex:1;min-width:106px;border-radius:10px;padding:10px;text-align:center;font-size:11px;font-weight:700;
+    border:2px solid transparent;background:#f1f5f9;color:#94a3b8;}
+  .gate-node .gn{font-size:15px;font-weight:800;display:block;margin-bottom:2px;}
+  .gate-node.done{background:var(--green-bg);color:var(--green);border-color:#bfe8d1;}
+  .gate-node.current{color:#fff;box-shadow:0 3px 10px rgba(0,0,0,.16);}
+  .gate-node.g1.current{background:linear-gradient(135deg,#7d8b9c,#5c6b7d);}
+  .gate-node.g2.current{background:linear-gradient(135deg,#4b93f7,#1a5fc4);}
+  .gate-node.g3.current{background:linear-gradient(135deg,#f5b942,#d68910);}
+  .gate-node.g4.current{background:linear-gradient(135deg,#9b7cff,#6841e0);}
+  .gate-node.g5.current{background:linear-gradient(135deg,#2ecb74,#12a150);}
+  .doc-gate-head{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:800;margin:14px 0 6px;padding:8px 12px;border-radius:9px;}
+  .doc-gate-head.g1{background:#eef2f7;color:#64748b;border-left:4px solid #94a3b8;}
+  .doc-gate-head.g2{background:#e7f0ff;color:var(--accent-dark);border-left:4px solid var(--accent);}
+  .doc-gate-head.g3{background:var(--amber-bg);color:#b9750a;border-left:4px solid var(--amber);}
+  .doc-gate-head.g4{background:#f3ecff;color:#6841e0;border-left:4px solid var(--violet);}
+  .doc-gate-head.g5{background:var(--green-bg);color:var(--green);border-left:4px solid var(--green);}
+
+  /* ===== MODAL ===== */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(11,27,43,.6);backdrop-filter:blur(3px);z-index:100;
+    align-items:flex-start;justify-content:center;overflow-y:auto;padding:30px 12px;}
+  .modal-overlay.show{display:flex;}
+  .modal{background:#fff;border-radius:16px;width:100%;max-width:700px;padding:24px;margin-bottom:30px;box-shadow:var(--shadow-lg);}
+  .modal h3{font-size:17px;font-weight:800;margin-bottom:18px;}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:13px;}
+  .form-row .full{grid-column:1/-1;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:9px;margin-top:18px;border-top:1px solid var(--border);padding-top:16px;}
+
+  /* ===== TOAST / LOADING ===== */
+  #toastWrap{position:fixed;right:16px;bottom:16px;z-index:200;display:flex;flex-direction:column;gap:10px;max-width:min(370px,calc(100vw - 32px));}
+  .toast{background:#fff;border:1px solid var(--border);border-left:5px solid var(--accent);border-radius:12px;padding:12px 15px;
+    box-shadow:var(--shadow-lg);animation:tin .28s ease-out;cursor:pointer;}
+  .toast.success{border-left-color:var(--green);} .toast.warn{border-left-color:var(--amber);} .toast.err{border-left-color:var(--red);}
+  .toast .tt{font-size:13px;font-weight:800;margin-bottom:3px;}
+  .toast .tb{font-size:12px;color:var(--text-light);line-height:1.55;}
+  @keyframes tin{from{opacity:0;transform:translateX(30px);}to{opacity:1;transform:none;}}
+  #busy{display:none;position:fixed;inset:0;background:rgba(11,27,43,.35);z-index:300;align-items:center;justify-content:center;}
+  #busy.show{display:flex;}
+  .spinner{width:46px;height:46px;border:4px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  #busyText{color:#fff;font-size:13px;font-weight:700;margin-top:14px;text-align:center;}
+  .sync-pill{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:700;padding:6px 12px;border-radius:20px;
+    background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#dbe8f7;cursor:pointer;}
+  .sync-pill .led{width:8px;height:8px;border-radius:50%;background:#7c8ea3;}
+  .sync-pill.on .led{background:#2ee07a;animation:pulse 2s infinite;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(46,224,122,.55);}70%{box-shadow:0 0 0 8px rgba(46,224,122,0);}100%{box-shadow:0 0 0 0 rgba(46,224,122,0);}}
+  .row-flash{animation:flash 2.4s ease-out;}
+  @keyframes flash{0%{background:#d8f3e3;}100%{background:transparent;}}
+  footer{text-align:center;padding:24px 20px;font-size:11.5px;color:var(--muted);}
+
+  @media (max-width:640px){
+    main{padding:13px;} .card{padding:16px;}
+    .form-row{grid-template-columns:1fr;}
+    .grid-kpi{grid-template-columns:repeat(2,1fr);}
+    table,thead,tbody,th,td,tr{display:block;}
+    thead{display:none;}
+    tr{border:1px solid var(--border);border-radius:11px;margin-bottom:11px;padding:7px;background:#fff;}
+    td{border:none;padding:7px 9px;display:flex;justify-content:space-between;gap:10px;font-size:12.5px;align-items:center;}
+    td::before{content:attr(data-label);font-weight:800;color:var(--text-light);font-size:10.5px;text-transform:uppercase;}
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
+
+<!-- ============ MAN HINH DANG NHAP ============ -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">⚡</div>
+    <h1>Quản lý Quy trình Kỹ thuật</h1>
+    <div class="sub">Phòng Kỹ thuật Điện – Điện tử · VNT Việt Nam</div>
+    <div class="login-err" id="loginErr"></div>
+    <div id="setupBox" style="display:none;">
+      <div class="fld">
+        <label>Địa chỉ máy chủ (URL Web App)</label>
+        <input type="text" id="srvUrl" placeholder="https://script.google.com/macros/s/.../exec">
+      </div>
+      <button class="btn primary wide" onclick="saveServer()">Lưu địa chỉ máy chủ</button>
+      <div class="login-hint">Lần đầu sử dụng cần nhập địa chỉ máy chủ do Trưởng phòng cung cấp.</div>
+    </div>
+    <div id="loginBox">
+      <div class="fld">
+        <label>Mã nhân viên</label>
+        <input type="text" id="lgCode" autocomplete="username" placeholder="vd: admin">
+      </div>
+      <div class="fld">
+        <label>Mật khẩu</label>
+        <input type="password" id="lgPass" autocomplete="current-password" placeholder="••••••••">
+      </div>
+      <button class="btn primary wide" id="lgBtn" onclick="doLogin()">Đăng nhập</button>
+      <div class="login-hint">
+        Chưa có tài khoản? Liên hệ Trưởng phòng để được cấp.<br>
+        <a href="#" onclick="showSetup();return false;" style="color:var(--accent);">Đổi địa chỉ máy chủ</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app">
   <header>
-    <div class="top">
-      <div class="logo">VNT</div>
-      <h1>Kho thiết bị điện<small>CÔNG TY TNHH MTV VNT VIỆT NAM — 5S</small></h1>
-      <button id="lockBtn" class="lockbtn" aria-label="Khóa chỉnh sửa">🔒</button>
+    <div>
+      <h1>Quản lý Quy trình Kỹ thuật Điện – Điện tử</h1>
+      <div class="sub" id="hdrSub">VNT Việt Nam</div>
     </div>
-    <div class="kpis">
-      <div class="kpi on" data-f="all"><div class="n" id="k-all">0</div><div class="l">Tổng mã</div></div>
-      <div class="kpi" data-f="stock"><div class="n" id="k-stock">0</div><div class="l">Còn hàng</div></div>
-      <div class="kpi warn" data-f="low"><div class="n" id="k-low">0</div><div class="l">Sắp hết</div></div>
-      <div class="kpi err" data-f="zero"><div class="n" id="k-zero">0</div><div class="l">Hết / trống</div></div>
+    <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;">
+      <span class="sync-pill" id="syncPill" onclick="toggleAuto()"><span class="led"></span>Tự động</span>
+      <button class="btn" onclick="refreshAll(true)">Làm mới</button>
+      <div class="userchip">
+        <div>
+          <div class="nm" id="uName">—</div>
+          <div class="rl" id="uRole">—</div>
+        </div>
+        <div class="avatar" id="uAvt">?</div>
+      </div>
+      <button class="btn" onclick="logout()">Thoát</button>
     </div>
-    <div class="robanner">🔒 Chế độ xem — tra cứu thoải mái, dữ liệu được bảo vệ. Bấm 🔒 góc trên để cập nhật.</div>
-    <div class="viewtoggle">
-      <button class="vt-btn on" id="vList"><span>☰</span> Danh sách</button>
-      <button class="vt-btn" id="vMap"><span>▦</span> Sơ đồ kệ</button>
-    </div>
-    <div class="searchrow" id="searchrow">
-      <input class="search" id="q" placeholder="🔎 Tìm mã, tên, vị trí, hãng...">
-      <button class="iconbtn" id="scanClr" aria-label="Xóa">✕</button>
-    </div>
-    <div class="chips" id="chips"></div>
   </header>
-  <div class="list" id="list"></div>
-  <div class="mapview" id="mapview" style="display:none"></div>
+  <nav class="tabs" id="tabNav"></nav>
+  <main id="mainArea"></main>
+  <footer id="appFooter"></footer>
 </div>
 
-<div class="backdrop" id="backdrop"></div>
-<div class="sheet" id="sheet">
-  <div class="grip"></div>
-  <div class="shd"><span class="pill" id="sVt">—</span><span id="sTitle" style="font-size:13px;color:var(--sub)"></span>
-    <button class="x" id="sClose">✕</button></div>
-  <div class="field"><label class="fl">Mã thiết bị</label><input class="inp" id="sMa" placeholder="VD: MY4N-GS"></div>
-  <div class="field"><label class="fl">Tên thiết bị</label><input class="inp" id="sTen" placeholder="VD: Relay trung gian"></div>
-  <div class="two field">
-    <div><label class="fl">Quy cách</label><input class="inp" id="sQuy" placeholder="24VDC"></div>
-    <div><label class="fl">Nhãn hiệu</label><input class="inp" id="sHang" placeholder="OMRON"></div>
-  </div>
-  <div class="field"><label class="fl">Số lượng tồn</label>
-    <div class="stepqty"><button id="qMinus">−</button><input class="inp" id="sSl" inputmode="numeric" value="0"><button id="qPlus">+</button></div>
-  </div>
-  <div class="two field">
-    <div><label class="fl">Đơn vị</label><input class="inp" id="sDv" placeholder="PCS"></div>
-    <div><label class="fl">Mức tối thiểu</label><input class="inp" id="sMin" inputmode="numeric" placeholder="—"></div>
-  </div>
-  <div class="field"><label class="fl">Vị trí kho</label><input class="inp" id="sVtEdit" placeholder="A-1-1"></div>
-  <div class="actions">
-    <button class="btn ghost" id="sDel">🗑</button>
-    <button class="btn primary" id="sSave">Lưu</button>
-  </div>
-</div>
-
-<div class="sheet" id="binSheet">
-  <div class="grip"></div>
-  <div class="shd"><span class="pill" id="bsCode">—</span>
-    <span style="font-size:13px;color:var(--sub)">Thiết bị trong rổ</span>
-    <button class="x" onclick="closeBinSheet()">✕</button></div>
-  <div id="bsBody"></div>
-  <button class="newbtn" id="bsAdd">＋ Thêm thiết bị vào rổ này</button>
-</div>
-
-<div class="bar">
-  <button class="add" id="btnAdd"><span class="ic">＋</span>Thêm</button>
-  <button id="btnExport"><span class="ic">⭳</span>Xuất</button>
-  <button id="btnImport"><span class="ic">⭱</span>Nhập</button>
-  <button id="btnPrint"><span class="ic">🖨</span>In/QR</button>
-  <button id="btnReset"><span class="ic">↺</span>Gốc</button>
-  <input type="file" id="fileIn" accept=".csv,.json,.txt">
-</div>
-<div class="toast" id="toast"></div>
-
-<div class="modal" id="modal"><div class="box">
-  <h3 id="mTitle"></h3><p id="mBody"></p>
-  <div class="mbtns"><button class="btn cancel" id="mCancel">Hủy</button><button class="btn primary" id="mOk">Đồng ý</button></div>
-</div></div>
+<div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this) closeModal();"><div class="modal" id="modalBody"></div></div>
+<div id="toastWrap"></div>
+<div id="busy"><div style="text-align:center;"><div class="spinner" style="margin:0 auto;"></div><div id="busyText">Đang xử lý…</div></div></div>
 
 <script>
-var SEED=[{"vt": "F-1-1", "ma": "R87F-A6A13HP", "ten": "QUẠT", "quy": "220 VAC", "hang": "OMRON", "sl": "1", "dv": "PCS", "nhom": "QUẠT & ĐÈN"}, {"vt": "F-1-1", "ma": "KA1725HA2", "ten": "QUẠT", "quy": "220 VAC", "hang": "KAKU", "sl": "2", "dv": "PCS", "nhom": "QUẠT & ĐÈN"}, {"vt": "F-1-1", "ma": "MR20060-AC", "ten": "QUẠT", "quy": "220 VAC", "hang": "ORIX", "sl": "4", "dv": "PCS", "nhom": "QUẠT & ĐÈN"}, {"vt": "F-1-2", "ma": "LR5-302P JNW-RYG", "ten": "ĐÈN THÁP", "quy": "24VDC", "hang": "PATLITE", "sl": "2", "dv": "PCS", "nhom": "QUẠT & ĐÈN"}, {"vt": "F-1-2", "ma": "2AB3311", "ten": "LỌC", "quy": "120*120MM", "hang": "", "sl": "11", "dv": "PCS", "nhom": "QUẠT & ĐÈN"}, {"vt": "F-1-2", "ma": "BNO58C", "ten": "ĐÈN", "quy": "220 VAC", "hang": "PHILIPS", "sl": "9", "dv": "PCS", "nhom": "QUẠT & ĐÈN"}, {"vt": "F-1-3", "ma": "QEL-300", "ten": "ĐÈN", "quy": "220 VAC", "hang": "QLIGHT", "sl": "4", "dv": "PCS", "nhom": "QUẠT & ĐÈN"}, {"vt": "A-1-1", "ma": "D4V-8112Z", "ten": "CỘNG TẮC HÀNH TRÌNH", "quy": "", "hang": "OMRON", "sl": "7", "dv": "PCS", "nhom": "OMRON"}, {"vt": "A-1-1", "ma": "HL5050", "ten": "CÔNG TẮC HÀNH TRÌNH", "quy": "", "hang": "OMRON", "sl": "15", "dv": "PCS", "nhom": "OMRON"}, {"vt": "A-1-2", "ma": "HL5030", "ten": "CÔNG TẮC HÀNH TRÌNH", "quy": "", "hang": "OMRON", "sl": "1", "dv": "PCS", "nhom": "OMRON"}, {"vt": "A-1-2", "ma": "WL01CA12-2N", "ten": "CÔNG TẮC HÀNH TRÌNH", "quy": "", "hang": "OMRON", "sl": "", "dv": "PCS", "nhom": "OMRON"}, {"vt": "A-1-3", "ma": "TZ1GV-1", "ten": "CÔNG TẮC HÀNH TRÌNH", "quy": "", "hang": "OMRON", "sl": "", "dv": "PCS", "nhom": "OMRON"}, {"vt": "A-1-3", "ma": "WL01H12", "ten": "CÔNG TẮC HÀNH TRÌNH", "quy": "", "hang": "OMRON", "sl": "", "dv": "PCS", "nhom": "OMRON"}, {"vt": "A-1-4", "ma": "WLCA12-2NLD", "ten": "CÔNG TẮC HÀNH TRÌNH", "quy": "", "hang": "OMRON", "sl": "", "dv": "PCS", "nhom": "OMRON"}, {"vt": "A-1-4", "ma": "PS-3S-AP", "ten": "GIÁ ĐIỆN CỰC", "quy": "", "hang": "OMRON", "sl": "10", "dv": "PCS", "nhom": "OMRON"}, {"vt": "A-2-1", "ma": "E52-CA1DY", "ten": "CẢM BIẾN NHIỆT", "quy": "2M", "hang": "OMRON", "sl": "9", "dv": "PCS", "nhom": "OMRON"}, {"vt": "A-2-1", "ma": "E2EH-X7C1", "ten": "CẢM BIẾN TIỆM CẬN", "quy": "2M", "hang": "OMRON", "sl": "1", "dv": "PCS", "nhom": "OMRON"}, {"vt": "A-2-2", "ma": "E32-T61", "ten": "CẢM BIẾN QUANG", "quy": "2M", "hang": "OMRON", "sl": "3", "dv": "PCS", "nhom": "OMRON"}, {"vt": "A-2-2", "ma": "E2B-M12KN08-WP-C1", "ten": "CẢM BIẾN TIỆM CẬN", "quy": "2M", "hang": "OMRON", "sl": "", "dv": "PCS", "nhom": "OMRON"}, {"vt": "A-2-3", "ma": "E2B-M12KN08-WP-B1", "ten": "CẢM BIẾN TIỆM CẬN", "quy": "2M", "hang": "OMRON", "sl": "", "dv": "PCS", "nhom": "OMRON"}, {"vt": "A-2-3", "ma": "E54-CT", "ten": "ĐIỀU KHIỂN NHIỆT", "quy": "", "hang": "OMRON", "sl": "2", "dv": "PCS", "nhom": "OMRON"}, {"vt": "A-2-4", "ma": "E3Z-LS60", "ten": "CẢM BIẾN QUANG", "quy": "2M", "hang": "OMRON", "sl": "2", "dv": "PCS", "nhom": "OMRON"}, {"vt": "A-2-4", "ma": "E5CC-PX2ASM-800", "ten": "ĐIỀU KHIỂN NHIỆT", "quy": "220 VAC", "hang": "OMRON", "sl": "1", "dv": "PCS", "nhom": "OMRON"}, {"vt": "A-3-1", "ma": "E2C-EDA11", "ten": "CẢM BIẾN TIỆM CẬN", "quy": "2M", "hang": "OMRON", "sl": "2", "dv": "PCS", "nhom": "OMRON"}, {"vt": "A-3-1", "ma": "E2C-EM02H", "ten": "CẢM BIẾN TIỆM CẬN", "quy": "2M", "hang": "OMRON", "sl": "4", "dv": "PCS", "nhom": "OMRON"}, {"vt": "A-3-2", "ma": "61F-G-AP", "ten": "PHAO NƯỚC", "quy": "220 VAC", "hang": "OMRON", "sl": "1", "dv": "PCS", "nhom": "OMRON"}, {"vt": "A-3-2", "ma": "H5CX-A-N", "ten": "TIMER", "quy": "200 VAC", "hang": "OMRON", "sl": "1", "dv": "PCS", "nhom": "OMRON"}, {"vt": "A-3-3", "ma": "H3Y-4", "ten": "TIMER", "quy": "220VAC", "hang": "OMRON", "sl": "2", "dv": "PCS", "nhom": "OMRON"}, {"vt": "A-3-3", "ma": "MY4N-GS", "ten": "RELAY", "quy": "24VDC", "hang": "OMRON", "sl": "20", "dv": "PCS", "nhom": "OMRON"}, {"vt": "A-3-4", "ma": "MY4N-GS", "ten": "RELAY", "quy": "220 VAC", "hang": "OMRON", "sl": "35", "dv": "PCS", "nhom": "OMRON"}, {"vt": "A-3-4", "ma": "PYF14A-N", "ten": "ĐẾ RELAY", "quy": "", "hang": "OMRON", "sl": "24", "dv": "PCS", "nhom": "OMRON"}, {"vt": "A-4-1", "ma": "PYFZ-08-E", "ten": "ĐẾ RELAY", "quy": "", "hang": "OMRON", "sl": "30", "dv": "PCS", "nhom": "OMRON"}, {"vt": "A-4-1", "ma": "BJ1M-DDT", "ten": "CẢM BIẾN", "quy": "", "hang": "OMRON", "sl": "4", "dv": "PCS", "nhom": "OMRON"}, {"vt": "A-4-2", "ma": "E52MY-CA20C", "ten": "CAN NHIỆT", "quy": "", "hang": "OMRON", "sl": "4", "dv": "PCS", "nhom": "OMRON"}, {"vt": "A-4-2", "ma": "E52MY-CA30C", "ten": "CAN NHIỆT", "quy": "", "hang": "OMRON", "sl": "2", "dv": "PCS", "nhom": "OMRON"}, {"vt": "B-1-1", "ma": "SJ2S-05B", "ten": "DẾ RELAY", "quy": "", "hang": "IDEC", "sl": "67", "dv": "PCS", "nhom": "IDEC"}, {"vt": "B-1-1", "ma": "RJ2S-CL-D24", "ten": "RELAY", "quy": "24VDC", "hang": "IDEC", "sl": "8", "dv": "PCS", "nhom": "IDEC"}, {"vt": "B-1-2", "ma": "RJ2S0CL-A11O", "ten": "RELAY", "quy": "110VAC", "hang": "IDEC", "sl": "6", "dv": "PCS", "nhom": "IDEC"}, {"vt": "B-1-2", "ma": "RJ2S-CL-A230", "ten": "RELAY", "quy": "220VAC", "hang": "IDEC", "sl": "38", "dv": "PCS", "nhom": "IDEC"}, {"vt": "B-1-3", "ma": "BAF111SUPN20", "ten": "VÒ CẦU CHÌ", "quy": "", "hang": "IDEC", "sl": "", "dv": "PCS", "nhom": "IDEC"}, {"vt": "B-1-3", "ma": "KGN311Y", "ten": "BOX", "quy": "", "hang": "IDEC", "sl": "3", "dv": "PCS", "nhom": "IDEC"}, {"vt": "B-1-4", "ma": "GE1A-B30HA220", "ten": "TIMER", "quy": "220VAC", "hang": "IDEC", "sl": "3", "dv": "PCS", "nhom": "IDEC"}, {"vt": "B-1-4", "ma": "GT5Y-4SN6A200", "ten": "TIMER", "quy": "220VAC", "hang": "IDEC", "sl": "4", "dv": "PCS", "nhom": "IDEC"}, {"vt": "B-2-1", "ma": "APW299DY", "ten": "ĐẾ ĐÈN VÀNG", "quy": "", "hang": "IDEC", "sl": "2", "dv": "PCS", "nhom": "IDEC"}, {"vt": "B-2-1", "ma": "APW299DR", "ten": "ĐẾ ĐÈN ĐỎ", "quy": "", "hang": "IDEC", "sl": "10", "dv": "PCS", "nhom": "IDEC"}, {"vt": "B-2-2", "ma": "YW1B-M1E10Y", "ten": "NÚT NHẤN NHẢ KHÔNG ĐÈN VÀNG", "quy": "", "hang": "IDEC", "sl": "10", "dv": "PCS", "nhom": "IDEC"}, {"vt": "B-2-2", "ma": "YW1B-M1E10G", "ten": "NÚT NHẤN NHẢ KHÔNG ĐÈN XANH LỤC", "quy": "", "hang": "IDEC", "sl": "10", "dv": "PCS", "nhom": "IDEC"}, {"vt": "B-2-3", "ma": "YW1B-M1E10R", "ten": "NÚT NHẤN NHẢ KHÔNG ĐÈN ĐỎ", "quy": "", "hang": "IDEC", "sl": "12", "dv": "PCS", "nhom": "IDEC"}, {"vt": "B-2-3", "ma": "YW1B-M1E10B", "ten": "NÚT NHẤN NHẢ KHÔNG ĐÈN ĐEN", "quy": "", "hang": "IDEC", "sl": "10", "dv": "PCS", "nhom": "IDEC"}, {"vt": "B-2-4", "ma": "YW1B-MF2E10Q4G", "ten": "NÚT NHẤN NHẢ CÓ ĐÈN XANH LỤC", "quy": "", "hang": "IDEC", "sl": "29", "dv": "PCS", "nhom": "IDEC"}, {"vt": "B-2-4", "ma": "YW1B-MF2E11Q4R", "ten": "NÚT NHẤN NHẢ CÓ ĐÈN ĐỎ", "quy": "", "hang": "IDEC", "sl": "45", "dv": "PCS", "nhom": "IDEC"}, {"vt": "B-3-1", "ma": "YW1S-3E20", "ten": "CÔNG TẮC XOAY 2 VỊ TRÍ", "quy": "", "hang": "IDEC", "sl": "9", "dv": "PCS", "nhom": "IDEC"}, {"vt": "B-3-1", "ma": "YW1S-2E10", "ten": "CÔNG TẮC XOAY 1 VỊ TRÍ", "quy": "", "hang": "IDEC", "sl": "7", "dv": "PCS", "nhom": "IDEC"}, {"vt": "B-3-2", "ma": "YW1P-1EQ4R", "ten": "ĐÈN BÁO ĐỎ", "quy": "24VDC", "hang": "IDEC", "sl": "", "dv": "PCS", "nhom": "IDEC"}, {"vt": "B-3-2", "ma": "YW1P-1EQ4Y", "ten": "ĐÈN BÁO VÀNG", "quy": "24VDC", "hang": "IDEC", "sl": "5", "dv": "PCS", "nhom": "IDEC"}, {"vt": "B-3-3", "ma": "YW1P-2EQ4W", "ten": "ĐÈN BÁO TRẮNG", "quy": "24VDC", "hang": "IDEC", "sl": "20", "dv": "PCS", "nhom": "IDEC"}, {"vt": "B-3-3", "ma": "YW1P-1EQMQY", "ten": "ĐÈN BÁO VÀNG", "quy": "220VAC", "hang": "IDEC", "sl": "6", "dv": "PCS", "nhom": "IDEC"}, {"vt": "B-3-4", "ma": "YW1P-1EQMQR", "ten": "ĐÈN BÁO ĐỎ", "quy": "22OVAC", "hang": "IDEC", "sl": "3", "dv": "PCS", "nhom": "IDEC"}, {"vt": "B-3-4", "ma": "YW1P-1EQMQS", "ten": "ĐÈN BÁO XANH", "quy": "220VAC", "hang": "IDEC", "sl": "5", "dv": "PCS", "nhom": "IDEC"}, {"vt": "B-4-1", "ma": "YW1P-1EQMW", "ten": "ĐÈN BÁO TRẮNG", "quy": "220VAC", "hang": "IDEC", "sl": "", "dv": "PCS", "nhom": "IDEC"}, {"vt": "B-4-1", "ma": "YW1P-1UQM3G", "ten": "ĐÈN BÁO XANH LỤC", "quy": "220VAC", "hang": "IDEC", "sl": "10", "dv": "PCS", "nhom": "IDEC"}, {"vt": "B-4-2", "ma": "AL6M-P4GC", "ten": "ĐÈN BÁO XANH LỤC", "quy": "220VAC", "hang": "IDEC", "sl": "2", "dv": "PCS", "nhom": "IDEC"}, {"vt": "B-4-2", "ma": "AL6M-P4WC", "ten": "ĐÈN BÁO TRẮNG", "quy": "220VAC", "hang": "IDEC", "sl": "18", "dv": "PCS", "nhom": "IDEC"}, {"vt": "B-4-3", "ma": "AL6M-P4RC", "ten": "ĐÈN BÁO ĐỎ", "quy": "220VAC", "hang": "IDEC", "sl": "", "dv": "PCS", "nhom": "IDEC"}, {"vt": "B-4-3", "ma": "AL6M-P4YC", "ten": "ĐÈN BÁO VÀNG", "quy": "220VAC", "hang": "IDEC", "sl": "", "dv": "PCS", "nhom": "IDEC"}, {"vt": "C-1-1", "ma": "NF250-CV", "ten": "MCCB", "quy": "3P 250A", "hang": "MISUBISHI", "sl": "1", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-1-1", "ma": "NF125-CV", "ten": "MCCB", "quy": "3P 75A", "hang": "MISUBISHI", "sl": "2", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-1-2", "ma": "NV63-CV", "ten": "MCCB", "quy": "3P 16A", "hang": "MISUBISHI", "sl": "1", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-1-2", "ma": "NV63-CV", "ten": "MCCB", "quy": "3P 30A", "hang": "MISUBISHI", "sl": "1", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-1-3", "ma": "NV63-CV", "ten": "MCCB", "quy": "3P 6A", "hang": "MISUBISHI", "sl": "3", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-1-3", "ma": "NF32-SW", "ten": "MCCB", "quy": "3P 6A", "hang": "MISUBISHI", "sl": "3", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-1-4", "ma": "NF30-CS", "ten": "MCCB", "quy": "3P 10A", "hang": "MISUBISHI", "sl": "2", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-1-4", "ma": "NF30-CS", "ten": "MCCB", "quy": "3P 5A", "hang": "MISUBISHI", "sl": "2", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-2-1", "ma": "NF30-CS", "ten": "MCCB", "quy": "3P 20A", "hang": "MISUBISHI", "sl": "1", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-2-1", "ma": "NF30-CS", "ten": "MCCB", "quy": "3P 30A", "hang": "MISUBISHI", "sl": "2", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-2-2", "ma": "NF63-SV", "ten": "MCCB", "quy": "3P 6A", "hang": "MISUBISHI", "sl": "", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-2-2", "ma": "NV63-CV", "ten": "MCCB", "quy": "2P 5A", "hang": "MISUBISHI", "sl": "", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-2-3", "ma": "NF30-CS", "ten": "MCCB", "quy": "2P  10A", "hang": "MISUBISHI", "sl": "1", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-2-3", "ma": "NF30-CS", "ten": "MCCB", "quy": "2P  15A", "hang": "MISUBISHI", "sl": "1", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-2-4", "ma": "NF30-CS", "ten": "MCCB", "quy": "2P  20A", "hang": "MISUBISHI", "sl": "2", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-2-4", "ma": "NF30-CS", "ten": "MCCB", "quy": "2P  5A", "hang": "MISUBISHI", "sl": "1", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-3-1", "ma": "CP30-PA-3A", "ten": "MCCB", "quy": "2P 3A", "hang": "MISUBISHI", "sl": "", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-3-1", "ma": "CP30-PA-3A", "ten": "MCCB", "quy": "2P 5A", "hang": "MISUBISHI", "sl": "", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-3-2", "ma": "CP30-PA-3A", "ten": "MCCB", "quy": "2P 7A", "hang": "MISUBISHI", "sl": "5", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-3-2", "ma": "CP30-PA-3A", "ten": "MCCB", "quy": "2P 15A", "hang": "MISUBISHI", "sl": "2", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-3-3", "ma": "BH-D6", "ten": "CB", "quy": "2P  6A", "hang": "MISUBISHI", "sl": "5", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-3-3", "ma": "ST-10", "ten": "CONTACTOR", "quy": "", "hang": "MISUBISHI", "sl": "1", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-3-4", "ma": "ST-12", "ten": "CONTACTOR", "quy": "", "hang": "MISUBISHI", "sl": "13", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-3-4", "ma": "ST-20", "ten": "CONTACTOR", "quy": "", "hang": "MISUBISHI", "sl": "9", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-4-1", "ma": "ST-25", "ten": "CONTACTOR", "quy": "", "hang": "MISUBISHI", "sl": "4", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-4-1", "ma": "ST-35", "ten": "CONTACTOR", "quy": "", "hang": "MISUBISHI", "sl": "1", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-4-2", "ma": "ST-65", "ten": "CONTACTOR", "quy": "", "hang": "MISUBISHI", "sl": "1", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-4-2", "ma": "ST-80", "ten": "CONTACTOR", "quy": "", "hang": "MISUBISHI", "sl": "1", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-4-3", "ma": "TH-T18", "ten": "RELAY NHIỆT", "quy": "0.7-1.1A", "hang": "MISUBISHI", "sl": "1", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-4-3", "ma": "TH-T18", "ten": "RELAY NHIỆT", "quy": "1-1.6A", "hang": "MISUBISHI", "sl": "1", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-4-4", "ma": "TH-T18", "ten": "RELAY NHIỆT", "quy": "12-18A", "hang": "MISUBISHI", "sl": "2", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-4-4", "ma": "TH-T25", "ten": "RELAY NHIỆT", "quy": "12-18A", "hang": "MISUBISHI", "sl": "2", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-5-1", "ma": "TH-N12", "ten": "RELAY NHIỆT", "quy": "2.8-4.4A", "hang": "MISUBISHI", "sl": "2", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-5-1", "ma": "TH-N20", "ten": "RELAY NHIỆT", "quy": "2-3A", "hang": "MISUBISHI", "sl": "1", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-5-2", "ma": "FX3G-60MT/ES", "ten": "PLC", "quy": "", "hang": "MISUBISHI", "sl": "", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-5-2", "ma": "FX3G-40MT/ES", "ten": "PLC", "quy": "", "hang": "MISUBISHI", "sl": "1", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-5-3", "ma": "FX3G-USB-BD", "ten": "USB PLC", "quy": "", "hang": "MISUBISHI", "sl": "", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-5-3", "ma": "F-4S", "ten": "TAY XOAY", "quy": "", "hang": "MISUBISHI", "sl": "", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-5-4", "ma": "F-2SV", "ten": "TAY XOAY", "quy": "", "hang": "MISUBISHI", "sl": "", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "C-5-4", "ma": "CW-5L", "ten": "CT", "quy": "", "hang": "MISUBISHI", "sl": "6", "dv": "PCS", "nhom": "MITSUBISHI"}, {"vt": "D-1-1", "ma": "SC-03", "ten": "CONTACTOR", "quy": "", "hang": "FUJI", "sl": "16", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-1-1", "ma": "SC-N2", "ten": "CONTACTOR", "quy": "", "hang": "FUJI", "sl": "2", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-1-1", "ma": "SC-N1", "ten": "CONTACTOR", "quy": "", "hang": "FUJI", "sl": "6", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-1-2", "ma": "SC-5-1", "ten": "CONTACTOR", "quy": "", "hang": "FUJI", "sl": "1", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-1-2", "ma": "SC-05", "ten": "CONTACTOR", "quy": "", "hang": "FUJI", "sl": "1", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-1-2", "ma": "TR-N2/3", "ten": "RELAY NHIỆT", "quy": "12-18A", "hang": "FUJI", "sl": "2", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-1-3", "ma": "TR-N2/3", "ten": "RELAY NHIỆT", "quy": "18-26A", "hang": "FUJI", "sl": "", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-1-3", "ma": "TR-N2/3", "ten": "RELAY NHIỆT", "quy": "7-11A", "hang": "FUJI", "sl": "2", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-1-3", "ma": "TR-N2/3", "ten": "RELAY NHIỆT", "quy": "18-26A", "hang": "FUJI", "sl": "2", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-1-4", "ma": "TR-N2H/3", "ten": "RELAY NHIỆT", "quy": "24-36A", "hang": "FUJI", "sl": "1", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-1-4", "ma": "TR-N2H", "ten": "RELAY NHIỆT", "quy": "18-26A", "hang": "FUJI", "sl": "6", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-1-4", "ma": "TR-N3H/3", "ten": "RELAY NHIỆT", "quy": "34-50A", "hang": "FUJI", "sl": "1", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-2-1", "ma": "TR-5-1N", "ten": "RELAY NHIỆT", "quy": "0.95-1.45A", "hang": "FUJI", "sl": "6", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-2-1", "ma": "TR-5-1N", "ten": "RELAY NHIỆT", "quy": "12-18A", "hang": "FUJI", "sl": "1", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-2-1", "ma": "TR-ON", "ten": "RELAY NHIỆT", "quy": "4-6A", "hang": "FUJI", "sl": "3", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-2-2", "ma": "TR-ON", "ten": "RELAY NHIỆT", "quy": "5-8A", "hang": "FUJI", "sl": "1", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-2-2", "ma": "TR-ON", "ten": "RELAY NHIỆT", "quy": "0.9-1.45", "hang": "FUJI", "sl": "4", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-2-2", "ma": "TR-N2", "ten": "RELAY NHIỆT", "quy": "18-26A", "hang": "FUJI", "sl": "1", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-2-3", "ma": "TR-ON", "ten": "RELAY NHIỆT", "quy": "2.2-3.4A", "hang": "FUJI", "sl": "1", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-2-3", "ma": "TR-ON", "ten": "RELAY NHIỆT", "quy": "7-11A", "hang": "FUJI", "sl": "2", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-2-3", "ma": "TR-ON", "ten": "RELAY NHIỆT", "quy": "1.4-2.2A", "hang": "FUJI", "sl": "3", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-2-4", "ma": "TR-ON", "ten": "RELAY NHIỆT", "quy": "1.7-2.6A", "hang": "FUJI", "sl": "1", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-2-4", "ma": "B26N10D", "ten": "TAY XOAY", "quy": "", "hang": "FUJI", "sl": "", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-2-4", "ma": "CP30FM-2P003", "ten": "CP", "quy": "2P-3A", "hang": "FUJI", "sl": "6", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-3-1", "ma": "BW50EAG", "ten": "MCCB", "quy": "3P-5A", "hang": "FUJI", "sl": "1", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-3-1", "ma": "BW50EAG", "ten": "MCCB", "quy": "3P-10A", "hang": "FUJI", "sl": "", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-3-1", "ma": "BW50EAG", "ten": "MCCB", "quy": "3P-20A", "hang": "FUJI", "sl": "2", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-3-2", "ma": "BW50EAG", "ten": "MCCB", "quy": "3P-30A", "hang": "FUJI", "sl": "1", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-3-2", "ma": "BW50EAG", "ten": "MCCB", "quy": "3P-40A", "hang": "FUJI", "sl": "1", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-3-2", "ma": "BW32AAG", "ten": "MCCB", "quy": "3P-10A", "hang": "FUJI", "sl": "1", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-3-3", "ma": "BW32AAG", "ten": "MCCB", "quy": "3P-5A", "hang": "FUJI", "sl": "2", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-3-3", "ma": "BW63SAG", "ten": "MCCB", "quy": "3P-63A", "hang": "FUJI", "sl": "3", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-3-3", "ma": "BW32AAG", "ten": "MCCB", "quy": "2P-5A", "hang": "FUJI", "sl": "6", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-3-4", "ma": "BW32EAG", "ten": "MCCB", "quy": "2P-5A", "hang": "FUJI", "sl": "", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-3-4", "ma": "BW32EAG", "ten": "MCCB", "quy": "2P-10A", "hang": "FUJI", "sl": "", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-3-4", "ma": "EW32AAG", "ten": "MCCB", "quy": "2P-5A", "hang": "FUJI", "sl": "4", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-4-1", "ma": "EW32AAG", "ten": "MCCB", "quy": "2P-10A", "hang": "FUJI", "sl": "1", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-4-1", "ma": "SZ-AO2", "ten": "TIẾP ĐIỂM PHỤ CONTACTOR", "quy": "", "hang": "FUJI", "sl": "10", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-4-1", "ma": "FRN00044C2S-4A", "ten": "BIẾN TẦNG", "quy": "0,75KW", "hang": "FUJI", "sl": "2", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-4-2", "ma": "FRN0037E2S-4GB", "ten": "BIẾN TẦNG", "quy": "18,5KW", "hang": "FUJI", "sl": "1", "dv": "PCS", "nhom": "FUJI"}, {"vt": "D-4-2", "ma": "FRN0018C2S-4A", "ten": "BIẾN TẦNG", "quy": "7,5KW", "hang": "FUJI", "sl": "1", "dv": "PCS", "nhom": "FUJI"}, {"vt": "E-1-1", "ma": "HY-T15", "ten": "ĐẾ CẦU CHÌ", "quy": "24VDC-10A", "hang": "HANGYOUNG", "sl": "", "dv": "PSC", "nhom": "HANYOUNG"}, {"vt": "E-1-1", "ma": "F15-1A", "ten": "ĐẾ CẦU CHÌ", "quy": "15A-250VAC", "hang": "HANGYOUNG", "sl": "60", "dv": "PSC", "nhom": "HANYOUNG"}, {"vt": "E-1-2", "ma": "306-24", "ten": "CÒI BÁO", "quy": "24VDC", "hang": "HANGYOUNG", "sl": "5", "dv": "PSC", "nhom": "HANYOUNG"}, {"vt": "E-1-2", "ma": "HY-305-2", "ten": "CÒI BÁO", "quy": "220VAC", "hang": "HANGYOUNG", "sl": "2", "dv": "PSC", "nhom": "HANYOUNG"}, {"vt": "E-1-3", "ma": "HY-606-MD", "ten": "CÒI BÁO", "quy": "24VDC", "hang": "HANGYOUNG", "sl": "2", "dv": "PSC", "nhom": "HANYOUNG"}, {"vt": "E-1-3", "ma": "HY-606-24", "ten": "CÒI BÁO", "quy": "24VDC", "hang": "HANGYOUNG", "sl": "1", "dv": "PSC", "nhom": "HANYOUNG"}, {"vt": "E-1-4", "ma": "HY-6060-2", "ten": "CÒI BÁO", "quy": "220VAC", "hang": "HANGYOUNG", "sl": "4", "dv": "PSC", "nhom": "HANYOUNG"}, {"vt": "E-1-4", "ma": "VX9-UMMA-A4T-2", "ten": "ĐỒNG HỒ DIỀU KHIỂN", "quy": "", "hang": "HANGYOUNG", "sl": "", "dv": "PSC", "nhom": "HANYOUNG"}, {"vt": "E-2-1", "ma": "T084-E-E-D24-V-D", "ten": "ĐÈN XOAY VÀNG", "quy": "24VDC", "hang": "HANGYOUNG", "sl": "", "dv": "PSC", "nhom": "HANYOUNG"}, {"vt": "E-2-1", "ma": "T084-E-E-D24-R-D", "ten": "ĐÈN XOAY ĐỎ", "quy": "21VDC", "hang": "HANGYOUNG", "sl": "", "dv": "PSC", "nhom": "HANYOUNG"}, {"vt": "E-2-2", "ma": "HSR-SLD4042", "ten": "SSR", "quy": "90-440VAC", "hang": "HANGYOUNG", "sl": "", "dv": "PSC", "nhom": "HANYOUNG"}, {"vt": "E-2-2", "ma": "T086-F-F-D24-R-D", "ten": "ĐÈN XOAY ĐỎ", "quy": "24VAC", "hang": "HANGYOUNG", "sl": "2", "dv": "PSC", "nhom": "HANYOUNG"}, {"vt": "E-2-3", "ma": "LTP-129Y0", "ten": "ĐÈN TÍNH HIỆU VÀNG", "quy": "12-48VDC", "hang": "HANGYOUNG", "sl": "1", "dv": "PSC", "nhom": "HANYOUNG"}, {"vt": "E-2-3", "ma": "T094-PAD24Y-D", "ten": "ĐÈN XOAY ĐỎ", "quy": "24VDC", "hang": "HANGYOUNG", "sl": "2", "dv": "PSC", "nhom": "HANYOUNG"}, {"vt": "E-2-4", "ma": "T060-P-F-D24-R-D", "ten": "ĐÈN XOAY ĐỎ", "quy": "24VDC", "hang": "HANGYOUNG", "sl": "1", "dv": "PSC", "nhom": "HANYOUNG"}, {"vt": "E-2-4", "ma": "AD16-16C (G)", "ten": "ĐÈN TÍNH HIỆU", "quy": "16MM 220VAC", "hang": "HANGYOUNG", "sl": "6", "dv": "PSC", "nhom": "HANYOUNG"}, {"vt": "E-3-1", "ma": "AD16-16C ®", "ten": "ĐÈN TÍNH HIỆU", "quy": "16MM 220VAC", "hang": "HANGYOUNG", "sl": "2", "dv": "PSC", "nhom": "HANYOUNG"}, {"vt": "E-3-1", "ma": "BIZ-08", "ten": "ĐẾ TIMER", "quy": "220VAC", "hang": "HANGYOUNG", "sl": "5", "dv": "PCS", "nhom": "HANYOUNG"}, {"vt": "E-3-2", "ma": "HY-R704B", "ten": "CÔNG TẮC HÀNH TRÌNH", "quy": "10A-250VAC", "hang": "HANGYOUNG", "sl": "5", "dv": "PCS", "nhom": "HANYOUNG"}, {"vt": "E-3-2", "ma": "HY-R708B", "ten": "CÔNG TẮC HÀNH TRÌNH", "quy": "10A-250VAC", "hang": "HANGYOUNG", "sl": "4", "dv": "PCS", "nhom": "HANYOUNG"}, {"vt": "E-3-3", "ma": "TPU-10", "ten": "TERMINALS", "quy": "10", "hang": "", "sl": "214", "dv": "PCS", "nhom": "TOGI"}, {"vt": "E-3-3", "ma": "TPU-20", "ten": "TERMINALS", "quy": "20", "hang": "", "sl": "100", "dv": "PCS", "nhom": "TOGI"}, {"vt": "E-3-4", "ma": "TPU-30", "ten": "TERMINALS", "quy": "30", "hang": "", "sl": "19", "dv": "PCS", "nhom": "TOGI"}, {"vt": "E-3-4", "ma": "TPU-40", "ten": "TERMINALS", "quy": "40", "hang": "", "sl": "32", "dv": "PCS", "nhom": "TOGI"}, {"vt": "E-4-1", "ma": "TPU-80L", "ten": "TERMINALS", "quy": "80", "hang": "", "sl": "50", "dv": "PCS", "nhom": "TOGI"}, {"vt": "E-4-1", "ma": "TPU-90", "ten": "TEẺMINALS", "quy": "90", "hang": "", "sl": "137", "dv": "PCS", "nhom": "TOGI"}, {"vt": "E-4-2", "ma": "PT-80", "ten": "TERMINALS", "quy": "80", "hang": "", "sl": "", "dv": "PCS", "nhom": "TOGI"}, {"vt": "E-4-2", "ma": "GTY13", "ten": "CHẶN", "quy": "", "hang": "", "sl": "", "dv": "HỘP", "nhom": "TOGI"}, {"vt": "E-4-3", "ma": "TPU-10L2", "ten": "VÁCH TERMINALS", "quy": "10", "hang": "", "sl": "", "dv": "BỊT", "nhom": "TOGI"}, {"vt": "E-4-3", "ma": "TPU-30", "ten": "VÁCH TERMINALS", "quy": "30", "hang": "", "sl": "", "dv": "BỊT", "nhom": "TOGI"}, {"vt": "F-1-3", "ma": "", "ten": "COS Y", "quy": "1-3.2", "hang": "KTS", "sl": "26", "dv": "Túi", "nhom": "COS"}, {"vt": "F-1-3", "ma": "", "ten": "COS O", "quy": "1.25-3", "hang": "TAI WAN", "sl": "13", "dv": "Túi", "nhom": "COS"}, {"vt": "F-1-4", "ma": "", "ten": "COS O", "quy": "2-3M", "hang": "TAIWAN", "sl": "", "dv": "Túi", "nhom": "COS"}, {"vt": "F-1-4", "ma": "", "ten": "COS O", "quy": "2-4S", "hang": "TAIWAN", "sl": "4", "dv": "Túi", "nhom": "COS"}, {"vt": "F-1-4", "ma": "", "ten": "COS O", "quy": "2--5", "hang": "TAI WAN", "sl": "9", "dv": "Túi", "nhom": "COS"}, {"vt": "F-2-1", "ma": "", "ten": "COS O", "quy": "3.5-4", "hang": "TAI WAN", "sl": "9", "dv": "Túi", "nhom": "COS"}, {"vt": "F-2-1", "ma": "", "ten": "COS O", "quy": "3.5-5", "hang": "TAIWAN", "sl": "8", "dv": "Túi", "nhom": "COS"}, {"vt": "F-2-1", "ma": "", "ten": "COS O", "quy": "3.5-6", "hang": "TAIWAN", "sl": "6", "dv": "Túi", "nhom": "COS"}, {"vt": "F-2-2", "ma": "", "ten": "COS O", "quy": "5--5", "hang": "KTS", "sl": "4", "dv": "Túi", "nhom": "COS"}, {"vt": "F-2-2", "ma": "", "ten": "COS O", "quy": "5.5-6", "hang": "TAI WAN", "sl": "5", "dv": "Túi", "nhom": "COS"}, {"vt": "F-2-2", "ma": "", "ten": "COS O", "quy": "5.5-8", "hang": "TAI WAN", "sl": "6", "dv": "Túi", "nhom": "COS"}, {"vt": "F-2-3", "ma": "", "ten": "COS O", "quy": "6.0-8", "hang": "KTS", "sl": "", "dv": "Túi", "nhom": "COS"}, {"vt": "F-2-3", "ma": "", "ten": "COS O", "quy": "8.0-5", "hang": "KTS", "sl": "5", "dv": "Túi", "nhom": "COS"}, {"vt": "F-2-3", "ma": "", "ten": "COS O", "quy": "8.0-8", "hang": "KTS", "sl": "4", "dv": "Túi", "nhom": "COS"}, {"vt": "F-2-4", "ma": "", "ten": "COS O", "quy": "14.0-6", "hang": "KTS", "sl": "2", "dv": "Túi", "nhom": "COS"}, {"vt": "F-2-4", "ma": "", "ten": "COS O", "quy": "14.0-8", "hang": "KTS", "sl": "", "dv": "Túi", "nhom": "COS"}, {"vt": "F-2-4", "ma": "", "ten": "COS O", "quy": "14.0-10", "hang": "TAI WAN", "sl": "7", "dv": "Túi", "nhom": "COS"}, {"vt": "F-3-1", "ma": "", "ten": "COS O", "quy": "22.0-6", "hang": "KTS", "sl": "12", "dv": "Túi", "nhom": "COS"}, {"vt": "F-3-1", "ma": "", "ten": "COS O", "quy": "22.0-8", "hang": "TAI WAN", "sl": "1", "dv": "Túi", "nhom": "COS"}, {"vt": "F-3-1", "ma": "", "ten": "COS O", "quy": "38.0-6", "hang": "TAI WAN", "sl": "", "dv": "Túi", "nhom": "COS"}, {"vt": "F-3-2", "ma": "", "ten": "COS O", "quy": "38.0-8", "hang": "KTS", "sl": "3", "dv": "Túi", "nhom": "COS"}, {"vt": "F-3-2", "ma": "", "ten": "COS O", "quy": "60-8", "hang": "TAI WAN", "sl": "", "dv": "Túi", "nhom": "COS"}, {"vt": "F-3-2", "ma": "", "ten": "COS O", "quy": "120-10", "hang": "TAI WAN", "sl": "", "dv": "PCS", "nhom": "COS"}, {"vt": "F-3-3", "ma": "", "ten": "COS O", "quy": "120-12", "hang": "TAIW WAN", "sl": "", "dv": "PCS", "nhom": "COS"}, {"vt": "F-3-3", "ma": "", "ten": "COS O", "quy": "183-12", "hang": "TAI WAN", "sl": "", "dv": "PCS", "nhom": "COS"}, {"vt": "F-3-3", "ma": "", "ten": "DÂY GREEN", "quy": "4.0 MM", "hang": "LION", "sl": "", "dv": "CUỘN", "nhom": "DÂY ĐIỆN"}, {"vt": "F-3-4", "ma": "", "ten": "DÂY GREEN", "quy": "2.5 MM", "hang": "LION", "sl": "2", "dv": "CUỘN", "nhom": "DÂY ĐIỆN"}, {"vt": "F-3-4", "ma": "", "ten": "DÂY GREEN", "quy": "1,5 MM", "hang": "LION", "sl": "1", "dv": "CUỘN", "nhom": "DÂY ĐIỆN"}, {"vt": "F-3-4", "ma": "", "ten": "DÂY RED", "quy": "10,0 MM", "hang": "CADIVA", "sl": "1", "dv": "CUÔN", "nhom": "DÂY ĐIỆN"}, {"vt": "F-4-1", "ma": "", "ten": "DÂY RED", "quy": "6,0 MM", "hang": "CADIVA", "sl": "7", "dv": "CUỘN", "nhom": "DÂY ĐIỆN"}, {"vt": "F-4-1", "ma": "", "ten": "DÂY RED", "quy": "4,0 MM", "hang": "CADIVA", "sl": "1", "dv": "CUỘN", "nhom": "DÂY ĐIỆN"}, {"vt": "F-4-1", "ma": "", "ten": "DÂY RED", "quy": "2,5 MM", "hang": "CADIVA", "sl": "2", "dv": "CUỘN", "nhom": "DÂY ĐIỆN"}, {"vt": "F-4-2", "ma": "", "ten": "DÂY BLUE", "quy": "10,0 MM", "hang": "CADIVA", "sl": "7", "dv": "CUỘN", "nhom": "DÂY ĐIỆN"}, {"vt": "F-4-2", "ma": "", "ten": "DÂY BLUE", "quy": "6,0 MM", "hang": "CADIVA", "sl": "4", "dv": "CUỘN", "nhom": "DÂY ĐIỆN"}, {"vt": "F-4-2", "ma": "", "ten": "DÂY BLUE", "quy": "4,0 MM", "hang": "CADIVA", "sl": "1", "dv": "CUỘN", "nhom": "DÂY ĐIỆN"}, {"vt": "F-4-3", "ma": "", "ten": "DÂY BLUE", "quy": "2,5 MM", "hang": "CADIVA", "sl": "3", "dv": "CUỘN", "nhom": "DÂY ĐIỆN"}, {"vt": "F-4-3", "ma": "", "ten": "DÂY BLUE", "quy": "0,5 MM", "hang": "LION", "sl": "4", "dv": "CUỘN", "nhom": "DÂY ĐIỆN"}, {"vt": "F-4-3", "ma": "", "ten": "DÂY YELOW", "quy": "6,O MM", "hang": "CADIVA", "sl": "1", "dv": "CUỘN", "nhom": "DÂY ĐIỆN"}, {"vt": "F-4-4", "ma": "", "ten": "DÂY YELOW", "quy": "0,75 MM", "hang": "CADIVA", "sl": "", "dv": "CUỘN", "nhom": "DÂY ĐIỆN"}, {"vt": "F-4-4", "ma": "", "ten": "DÂY YELOW", "quy": "0,5 MM", "hang": "CADIVA+LION", "sl": "20", "dv": "CUỘN", "nhom": "DÂY ĐIỆN"}, {"vt": "F-4-4", "ma": "", "ten": "DÂY WHITE", "quy": "10,0 MM", "hang": "CADIVA", "sl": "7", "dv": "CUỘN", "nhom": "DÂY ĐIỆN"}, {"vt": "F-5-1", "ma": "", "ten": "DÂY WHITE", "quy": "6,0 MM", "hang": "CADIVA", "sl": "8", "dv": "CUỘN", "nhom": "DÂY ĐIỆN"}, {"vt": "F-5-1", "ma": "", "ten": "DÂY WHITE", "quy": "4,0 MM", "hang": "CADIVA", "sl": "2", "dv": "CUỘN", "nhom": "DÂY ĐIỆN"}, {"vt": "F-5-1", "ma": "", "ten": "DÂY WHITE", "quy": "2,5 MM", "hang": "CADIVA", "sl": "4", "dv": "CUỘN", "nhom": "DÂY ĐIỆN"}, {"vt": "F-5-2", "ma": "", "ten": "MÁNG ĐIỆN", "quy": "40x60MM", "hang": "", "sl": "18", "dv": "BỘ", "nhom": "MÁNG ĐIỆN"}, {"vt": "F-5-2", "ma": "", "ten": "MÁNG ĐIỆN", "quy": "45x65MM", "hang": "", "sl": "8", "dv": "BỘ", "nhom": "MÁNG ĐIỆN"}, {"vt": "F-5-2", "ma": "", "ten": "MÁNG ĐIỆN", "quy": "65x65MM", "hang": "", "sl": "", "dv": "BỘ", "nhom": "MÁNG ĐIỆN"}, {"vt": "F-5-3", "ma": "", "ten": "MÁNG ĐIỆN", "quy": "60x80MM", "hang": "", "sl": "", "dv": "BỘ", "nhom": "MÁNG ĐIỆN"}, {"vt": "F-5-3", "ma": "", "ten": "MÁNG ĐIỆN", "quy": "100x100MM", "hang": "", "sl": "2", "dv": "BỘ", "nhom": "MÁNG ĐIỆN"}];
-var KEY="khoVNT_5s_v1";
-var items=[]; var editIdx=-1; var filter="all"; var groupFilter="";
+/* ============================================================
+   CAU HINH & TRANG THAI
+   ============================================================ */
+const APP_VERSION = "3.0";
+const SRV_KEY = "vnt_app_server";
+const TOKEN_KEY = "vnt_app_token";
+const AUTO_KEY = "vnt_app_auto";
 
-function loadStore(){
-  try{var raw=localStorage.getItem(KEY);items=raw?JSON.parse(raw):JSON.parse(JSON.stringify(SEED));}
-  catch(e){items=JSON.parse(JSON.stringify(SEED));}
+let ME = null;            // {code,name,role}
+let PROJECTS = [];        // toan bo du an
+let META = {staff:[], config:null};
+let activeTab = "dashboard";
+let searchTerms = {};
+let autoTimer = null;
+let lastSync = null;
+let busyDepth = 0;
+
+const ROLE_LABEL = {truongphong:"Trưởng phòng", leader:"Leader", kysu:"Kỹ sư / Nhân viên"};
+
+const DOC_STATUS = ["WIP","CHECK","APPROVED","RELEASED"];
+const GATES = [
+  {n:1,name:"G1 - Tiếp nhận yêu cầu",nvRole:"Thu thập",goal:"Tiếp nhận và xác nhận yêu cầu ban đầu.",
+   nvTasks:["Thu thập Customer Requirement, Specification, layout, motor/sensor list..."]},
+  {n:2,name:"G2 - Thiết kế sơ bộ",nvRole:"Đề xuất + thiết kế sơ bộ",goal:"Chốt phương án kỹ thuật trước khi thiết kế chi tiết.",
+   nvTasks:["Phân tích yêu cầu G1","Xây dựng phương án điều khiển","Preliminary BOM","Drawing Cabinet (sơ bộ)","Xác định network","Xác định vấn đề kỹ thuật cần làm rõ"]},
+  {n:3,name:"G3 - Thiết kế chi tiết",nvRole:"Thiết kế chi tiết",goal:"Biến phương án G2 thành hồ sơ sản xuất/lập trình được.",
+   nvTasks:["Electrical schematic","Panel layout","PLC program","HMI","Network configuration","Safety circuit","Tài liệu kỹ thuật liên quan"]},
+  {n:4,name:"G4 - Design Review",nvRole:"Trình bày + sửa",goal:"Trưởng phòng kiểm tra toàn diện. G4 không đạt thì KHÔNG được sang G5.",
+   nvTasks:["Trình bày thiết kế","Giải thích lựa chọn kỹ thuật","Nêu điểm đặc biệt/rủi ro","Tiếp nhận comment","Sửa thiết kế"],
+   tpTasks:["Chủ trì Design Review","Kiểm tra tính đúng đắn thiết kế","Kiểm tra Safety","Kiểm tra Electrical","Kiểm tra Control","Kiểm tra Network","Kiểm tra khả năng bảo trì","Kiểm tra chi phí","Kiểm tra khả năng sản xuất/commissioning","Quyết định PASS / REVISE"]},
+  {n:5,name:"G5 - Phê duyệt / Release",nvRole:"Chuẩn bị hồ sơ",goal:"Hoàn thiện hồ sơ theo comment G4 và phát hành.",
+   nvTasks:["Sửa toàn bộ comment G4","Hoàn thiện bản vẽ","Cập nhật Revision","Hoàn thiện BOM","Hoàn thiện PLC/HMI","Hoàn thiện parameter","Chuẩn bị hồ sơ Release: Hoàn công + User Manual"]}
+];
+const GATE_STATUS_LABEL = {cho_nv:"Đang chờ NV làm", cho_duyet:"NV đã gửi - Chờ duyệt", hoan_thanh:"Đã hoàn thành (Released)"};
+const GATE_STATUS_BADGE = {cho_nv:"wip", cho_duyet:"check", hoan_thanh:"released"};
+const TASK_STATUS = ["Chưa làm","Đang làm","Chờ kiểm tra","Hoàn thành","Trễ hạn"];
+const STAFF_LEVELS = ["L1 - Kỹ thuật viên","L2 - Kỹ sư","L3 - Leader","L4 - Trưởng phòng"];
+const DEFAULT_DOCS = [
+  {name:"Customer Requirement",gate:1},{name:"Specification",gate:1},
+  {name:"Phân tích yêu cầu",gate:2},{name:"Phương án điều khiển",gate:2},{name:"Preliminary BOM",gate:2},
+  {name:"Drawing Cabinet (sơ bộ)",gate:2},{name:"Network Plan (sơ bộ)",gate:2},{name:"Vấn đề kỹ thuật cần làm rõ",gate:2},
+  {name:"Electrical Schematic",gate:3},{name:"Panel Layout (chi tiết)",gate:3},{name:"PLC Program",gate:3},
+  {name:"HMI Program",gate:3},{name:"Network Configuration",gate:3},{name:"Safety Circuit",gate:3},
+  {name:"Tài liệu kỹ thuật liên quan (I/O List, Wiring, Parameter)",gate:3},
+  {name:"Biên bản Design Review",gate:4},
+  {name:"BOM hoàn thiện",gate:5},{name:"Test Report",gate:5},{name:"Commissioning Report",gate:5},
+  {name:"Hồ sơ hoàn công (As-built)",gate:5},{name:"User Manual",gate:5},{name:"Backup Data",gate:5}
+];
+const TEST_TEMPLATE = [
+  {key:"visual",name:"1. Visual Inspection",items:["Kiểm tra lắp đặt","Kiểm tra label","Kiểm tra terminal","Kiểm tra dây"]},
+  {key:"mech",name:"2. Mechanical Check",items:["Torque terminal","DIN rail","Cable duct","Busbar","Grounding"]},
+  {key:"elec",name:"3. Electrical Check",items:["Short circuit","Insulation resistance","Continuity","PE (tiếp địa)","Voltage"]},
+  {key:"io",name:"4. I/O Test",items:["DI","DO","AI","AO","Sensor","Solenoid","Motor"]},
+  {key:"comm",name:"5. Communication Test",items:["Ethernet","Profinet","Modbus TCP","Modbus RTU","CC-Link/CC-Link IE","SLMP / Khác"]},
+  {key:"func",name:"6. Functional Test",items:["Sequence toàn máy (Manual)","Sequence toàn máy (Auto)"]},
+  {key:"safety",name:"7. Safety Test",items:["Emergency stop","Door switch","Safety relay / Safety PLC","Interlock","Reset","Safe state"]}
+];
+
+/* ============================================================
+   TIEN ICH
+   ============================================================ */
+function esc(s){return (s===undefined||s===null)?"":String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
+function todayStr(){return new Date().toISOString().slice(0,10);}
+function uid(p){return p+"_"+Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function getServer(){return (localStorage.getItem(SRV_KEY)||"").trim();}
+function getToken(){return localStorage.getItem(TOKEN_KEY)||"";}
+function fmtSize(b){if(!b)return "0 KB";if(b<1048576)return Math.max(1,Math.round(b/1024))+" KB";return (b/1048576).toFixed(1)+" MB";}
+function daysBetween(d){if(!d)return null;const x=new Date(d+"T00:00:00");if(isNaN(x))return null;
+  return Math.round((x-new Date(todayStr()+"T00:00:00"))/86400000);}
+function docConfig(){return (META.config&&META.config.docs&&META.config.docs.length)?META.config.docs:DEFAULT_DOCS;}
+function docList(){return docConfig().map(d=>d.name);}
+function docGate(n){const f=docConfig().find(d=>d.name===n);return f?Number(f.gate)||1:1;}
+function isBoss(){return ME&&ME.role==="truongphong";}
+function isLeader(){return ME&&(ME.role==="truongphong"||ME.role==="leader");}
+const VN_MAP={"à":"a","á":"a","ạ":"a","ả":"a","ã":"a","â":"a","ầ":"a","ấ":"a","ậ":"a","ẩ":"a","ẫ":"a","ă":"a","ằ":"a","ắ":"a","ặ":"a","ẳ":"a","ẵ":"a","è":"e","é":"e","ẹ":"e","ẻ":"e","ẽ":"e","ê":"e","ề":"e","ế":"e","ệ":"e","ể":"e","ễ":"e","ì":"i","í":"i","ị":"i","ỉ":"i","ĩ":"i","ò":"o","ó":"o","ọ":"o","ỏ":"o","õ":"o","ô":"o","ồ":"o","ố":"o","ộ":"o","ổ":"o","ỗ":"o","ơ":"o","ờ":"o","ớ":"o","ợ":"o","ở":"o","ỡ":"o","ù":"u","ú":"u","ụ":"u","ủ":"u","ũ":"u","ư":"u","ừ":"u","ứ":"u","ự":"u","ử":"u","ữ":"u","ỳ":"y","ý":"y","ỵ":"y","ỷ":"y","ỹ":"y","đ":"d"};
+/* So khop ten: bo dau + gom khoang trang, tranh mat quyen chi vi lech dau */
+function normName(s){
+  let o="";
+  for(const c of String(s||"").toLowerCase()){ o += VN_MAP[c]||c; }
+  return o.replace(/\s+/g," ").trim();
 }
-function save(){try{localStorage.setItem(KEY,JSON.stringify(items));}catch(e){}}
-function num(x){var n=parseFloat(x);return isNaN(n)?null:n;}
-function esc(s){return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
-function toast(m,err){var t=document.getElementById('toast');t.textContent=m;t.className="toast show"+(err?" err":"");setTimeout(function(){t.className="toast";},1600);}
+function sameName(a,b){ return normName(a)===normName(b) && normName(a)!==""; }
+function canEdit(p){if(!ME)return false;if(isLeader())return true;return sameName(p.manager,ME.name);}
+function docProgress(p){const d=p.docs||[];const r=d.filter(x=>x.status==="RELEASED").length;
+  return {released:r,total:d.length,pct:d.length?Math.round(r/d.length*100):0};}
 
-function groups(){var s=[];items.forEach(function(it){if(it.nhom&&s.indexOf(it.nhom)<0)s.push(it.nhom);});return s;}
-
-function render(){
-  var all=items.length;
-  var stock=items.filter(function(it){return num(it.sl)!==null&&num(it.sl)>0;}).length;
-  var low=items.filter(function(it){var q=num(it.sl),m=num(it.min);return q!==null&&m!==null&&q<=m&&q>0;}).length;
-  var zero=items.filter(function(it){var q=num(it.sl);return q===null||q===0;}).length;
-  document.getElementById('k-all').textContent=all;
-  document.getElementById('k-stock').textContent=stock;
-  document.getElementById('k-low').textContent=low;
-  document.getElementById('k-zero').textContent=zero;
-  document.querySelectorAll('.kpi').forEach(function(k){k.classList.toggle('on',k.getAttribute('data-f')===filter);});
-
-  var chips=document.getElementById('chips');
-  var gs=groups();
-  chips.innerHTML='<div class="chip'+(groupFilter===""?" on":"")+'" data-g="">Tất cả kệ</div>'+
-    gs.map(function(g){return '<div class="chip'+(groupFilter===g?" on":"")+'" data-g="'+esc(g)+'">'+esc(g)+'</div>';}).join("");
-  chips.querySelectorAll('.chip').forEach(function(c){c.onclick=function(){groupFilter=c.getAttribute('data-g');render();};});
-
-  var q=document.getElementById('q').value.toLowerCase().trim();
-  var rows=items.map(function(it,i){return {it:it,i:i};}).filter(function(o){
-    var it=o.it;
-    if(filter==="stock"&&!(num(it.sl)>0))return false;
-    if(filter==="low"){var m=num(it.min),qq=num(it.sl);if(!(m!==null&&qq!==null&&qq<=m&&qq>0))return false;}
-    if(filter==="zero"){var z=num(it.sl);if(!(z===null||z===0))return false;}
-    if(groupFilter&&it.nhom!==groupFilter)return false;
-    if(q){var hay=(it.ma+" "+it.ten+" "+it.vt+" "+it.hang+" "+it.quy+" "+it.nhom).toLowerCase();if(hay.indexOf(q)<0)return false;}
-    return true;
-  });
-
-  var L=document.getElementById('list');
-  if(rows.length===0){L.innerHTML='<div class="empty">Không tìm thấy thiết bị nào.<br>Thử xóa bộ lọc hoặc bấm ＋ Thêm.</div>';return;}
-  rows.sort(function(a,b){return (a.it.vt||"zzz").localeCompare(b.it.vt||"zzz");});
-  var html="",lastG=null;
-  rows.forEach(function(o){
-    var it=o.it;
-    if(!q&&!groupFilter&&it.nhom!==lastG){lastG=it.nhom;html+='<div class="grp">'+esc(it.nhom||"KHÁC")+'</div>';}
-    var qv=num(it.sl),mv=num(it.min);
-    var cls="";if(qv===null||qv===0)cls="zero";else if(mv!==null&&qv<=mv)cls="low";
-    function hl(s){if(!q)return esc(s);var e=esc(s);var idx=e.toLowerCase().indexOf(q);if(idx<0)return e;
-      return e.slice(0,idx)+'<mark>'+e.slice(idx,idx+q.length)+'</mark>'+e.slice(idx+q.length);}
-    var vtparts=(it.vt||"—").split('-');
-    html+='<div class="item" data-i="'+o.i+'">'+
-      '<div class="vt"><b>'+esc(it.vt||"—")+'</b><span>Kệ '+esc(vtparts[0]||"?")+'</span></div>'+
-      '<div class="info"><div class="ma">'+hl(it.ma||it.ten||"(chưa đặt tên)")+'</div>'+
-      '<div class="ten">'+hl(it.ten||"")+'</div>'+
-      '<div class="meta">'+esc([it.quy,it.hang].filter(Boolean).join(" · "))+'</div></div>'+
-      '<div class="qtybox '+cls+'"><div class="q">'+(qv===null?"–":qv)+'</div><div class="u">'+esc(it.dv||"")+'</div></div>'+
-      '</div>';
-  });
-  L.innerHTML=html;
-  L.querySelectorAll('.item').forEach(function(el){el.onclick=function(){openEdit(parseInt(el.getAttribute('data-i')));};});
+function busy(on,text){
+  busyDepth += on?1:-1;
+  if(busyDepth<0) busyDepth=0;
+  const el=document.getElementById("busy");
+  if(text) document.getElementById("busyText").textContent=text;
+  el.classList.toggle("show", busyDepth>0);
 }
-
-function openEdit(i){
-  editIdx=i;
-  var it=i>=0?items[i]:{vt:"",ma:"",ten:"",quy:"",hang:"",sl:"0",dv:"PCS",min:"",nhom:groupFilter||""};
-  document.getElementById('sVt').textContent=it.vt||"MỚI";
-  document.getElementById('sMa').value=it.ma||"";
-  document.getElementById('sTen').value=it.ten||"";
-  document.getElementById('sQuy').value=it.quy||"";
-  document.getElementById('sHang').value=it.hang||"";
-  document.getElementById('sSl').value=it.sl||"0";
-  document.getElementById('sDv').value=it.dv||"PCS";
-  document.getElementById('sMin').value=it.min||"";
-  document.getElementById('sVtEdit').value=it.vt||"";
-  document.getElementById('sDel').style.display=i>=0?"block":"none";
-  var ro=!unlocked;
-  ['sMa','sTen','sQuy','sHang','sSl','sDv','sMin','sVtEdit'].forEach(function(id){document.getElementById(id).readOnly=ro;});
-  document.getElementById('qPlus').style.display=ro?"none":"block";
-  document.getElementById('qMinus').style.display=ro?"none":"block";
-  document.getElementById('sSave').style.display=ro?"none":"block";
-  document.getElementById('sTitle').textContent=ro?"Xem chi tiết":(i>=0?"Sửa thiết bị":"Thêm thiết bị");
-  document.getElementById('backdrop').classList.add('show');
-  document.getElementById('sheet').classList.add('show');
+function toast(title,body,type){
+  const w=document.getElementById("toastWrap");
+  const el=document.createElement("div");
+  el.className="toast "+(type||"");
+  el.innerHTML=`<div class="tt">${esc(title)}</div>`+(body?`<div class="tb">${body}</div>`:"");
+  el.onclick=()=>el.remove();
+  w.appendChild(el);
+  setTimeout(()=>el.remove(), type==="err"?9000:6000);
 }
-function closeSheet(){document.getElementById('backdrop').classList.remove('show');document.getElementById('sheet').classList.remove('show');editIdx=-1;}
-
-document.getElementById('qPlus').onclick=function(){var e=document.getElementById('sSl');e.value=(num(e.value)||0)+1;};
-document.getElementById('qMinus').onclick=function(){var e=document.getElementById('sSl');e.value=Math.max(0,(num(e.value)||0)-1);};
-
-document.getElementById('sSave').onclick=function(){
-  var obj={vt:document.getElementById('sVtEdit').value.trim().toUpperCase(),
-    ma:document.getElementById('sMa').value.trim(),ten:document.getElementById('sTen').value.trim(),
-    quy:document.getElementById('sQuy').value.trim(),hang:document.getElementById('sHang').value.trim(),
-    sl:document.getElementById('sSl').value.trim(),dv:document.getElementById('sDv').value.trim()||"PCS",
-    min:document.getElementById('sMin').value.trim(),
-    nhom:editIdx>=0?items[editIdx].nhom:(groupFilter||document.getElementById('sHang').value.trim().toUpperCase()||"KHÁC")};
-  if(!obj.ma&&!obj.ten){toast("Nhập ít nhất Mã hoặc Tên",true);return;}
-  if(editIdx>=0)items[editIdx]=obj;else items.push(obj);
-  save();render();closeSheet();toast("Đã lưu");
-};
-document.getElementById('sDel').onclick=function(){
-  if(editIdx<0)return;
-  confirmModal("Xóa thiết bị","Xóa vĩnh viễn thiết bị này khỏi kho?",function(){
-    items.splice(editIdx,1);save();render();closeSheet();toast("Đã xóa");});
-};
-document.getElementById('sClose').onclick=closeSheet;
-document.getElementById('backdrop').onclick=closeSheet;
-document.getElementById('btnAdd').onclick=function(){openEdit(-1);};
-
-document.querySelectorAll('.kpi').forEach(function(k){k.onclick=function(){filter=k.getAttribute('data-f');render();};});
-document.getElementById('q').oninput=render;
-document.getElementById('scanClr').onclick=function(){document.getElementById('q').value="";render();};
-
-function confirmModal(title,body,onOk){
-  document.getElementById('mTitle').textContent=title;
-  document.getElementById('mBody').textContent=body;
-  var m=document.getElementById('modal');m.classList.add('show');
-  document.getElementById('mCancel').onclick=function(){m.classList.remove('show');};
-  document.getElementById('mOk').onclick=function(){m.classList.remove('show');onOk();};
+function closeModal(){document.getElementById("modalOverlay").classList.remove("show");}
+function openModalHtml(html){
+  document.getElementById("modalBody").innerHTML=html;
+  document.getElementById("modalOverlay").classList.add("show");
 }
 
-function csvCell(x){x=(x==null?"":""+x);return /[",\n]/.test(x)?'"'+x.replace(/"/g,'""')+'"':x;}
-document.getElementById('btnExport').onclick=function(){
-  var head=["Vị trí","Mã","Tên","Quy cách","Nhãn hiệu","Số Lượng","Đơn Vị","Mức tối thiểu","Nhóm"];
-  var rows=[head].concat(items.map(function(it){return [it.vt,it.ma,it.ten,it.quy,it.hang,it.sl,it.dv,it.min||"",it.nhom];}));
-  var csv=rows.map(function(r){return r.map(csvCell).join(",");}).join("\r\n");
-  downloadFile("kho-VNT-"+dateStr()+".csv","\ufeff"+csv,"text/csv");
-};
-function dateStr(){var d=new Date();return d.getFullYear()+"-"+("0"+(d.getMonth()+1)).slice(-2)+"-"+("0"+d.getDate()).slice(-2);}
+/* ============================================================
+   GIAO TIEP MAY CHU
+   ============================================================ */
+async function api(action, payload, opts){
+  const url=getServer();
+  if(!url) throw new Error("Chưa cấu hình địa chỉ máy chủ.");
+  const body=Object.assign({action, token:getToken()}, payload||{});
+  const res=await fetch(url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body)});
+  if(!res.ok) throw new Error("Không kết nối được máy chủ (HTTP "+res.status+")");
+  const data=await res.json();
+  if(data && data.needLogin){ logout(true); throw new Error("Phiên đăng nhập hết hạn."); }
+  if(!data || !data.ok) throw new Error((data&&data.error)||"Lỗi không xác định");
+  return data;
+}
 
-function downloadFile(name,content,mime){
+/* ============================================================
+   DANG NHAP / KHOI DONG
+   ============================================================ */
+function showSetup(){
+  document.getElementById("setupBox").style.display="block";
+  document.getElementById("loginBox").style.display="none";
+  document.getElementById("srvUrl").value=getServer();
+}
+function saveServer(){
+  const v=document.getElementById("srvUrl").value.trim();
+  if(!v.startsWith("http")){ loginErr("Địa chỉ máy chủ phải bắt đầu bằng https://"); return; }
+  localStorage.setItem(SRV_KEY,v);
+  document.getElementById("setupBox").style.display="none";
+  document.getElementById("loginBox").style.display="block";
+  loginErr("");
+  toast("Đã lưu địa chỉ máy chủ","Bây giờ anh/chị có thể đăng nhập.","success");
+}
+function loginErr(msg){
+  const el=document.getElementById("loginErr");
+  el.textContent=msg||"";
+  el.style.display=msg?"block":"none";
+}
+async function doLogin(){
+  const code=document.getElementById("lgCode").value.trim();
+  const pass=document.getElementById("lgPass").value;
+  if(!code||!pass){ loginErr("Vui lòng nhập đầy đủ mã nhân viên và mật khẩu."); return; }
+  if(!getServer()){ showSetup(); loginErr("Chưa cấu hình địa chỉ máy chủ."); return; }
+  const btn=document.getElementById("lgBtn");
+  btn.disabled=true; btn.textContent="Đang đăng nhập…";
   try{
-    var blob=new Blob([content],{type:mime+";charset=utf-8;"});
-    var url=URL.createObjectURL(blob);
-    var a=document.createElement("a");a.href=url;a.download=name;
-    document.body.appendChild(a);a.click();document.body.removeChild(a);
-    setTimeout(function(){URL.revokeObjectURL(url);},1500);
-    toast("Đã xuất "+name);
+    const url=getServer();
+    const res=await fetch(url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify({action:"login",code,password:pass})});
+    const d=await res.json();
+    if(!d.ok){ loginErr(d.error||"Đăng nhập thất bại."); return; }
+    localStorage.setItem(TOKEN_KEY,d.token);
+    ME=d.user;
+    await bootApp();
   }catch(e){
-    // Fallback for mobile browsers that block download
-    var w=window.open("","_blank");
-    if(w){w.document.write("<pre style='white-space:pre-wrap;font:14px monospace;padding:12px'>"+esc(content)+"</pre>");
-      w.document.title=name;toast("Chép nội dung để lưu",false);}
-    else{prompt("Sao chép nội dung sau và lưu thành file "+name,content);}
+    loginErr("Không kết nối được máy chủ. Kiểm tra lại đường truyền hoặc địa chỉ máy chủ.");
+  }finally{
+    btn.disabled=false; btn.textContent="Đăng nhập";
   }
 }
-
-document.getElementById('btnImport').onclick=function(){document.getElementById('fileIn').click();};
-document.getElementById('fileIn').onchange=function(e){
-  var f=e.target.files[0];if(!f)return;var r=new FileReader();
-  r.onload=function(){
-    try{
-      var txt=r.result,imported=[];
-      if(f.name.toLowerCase().slice(-5)===".json"){imported=JSON.parse(txt);}
-      else{
-        var lines=txt.replace(/^\ufeff/,"").split(/\r?\n/);
-        lines.forEach(function(line,i){
-          if(!line.trim())return;var c=parseCSV(line);
-          if(i===0&&/vị trí|position/i.test(c[0]))return;
-          imported.push({vt:(c[0]||"").trim(),ma:(c[1]||"").trim(),ten:(c[2]||"").trim(),
-            quy:(c[3]||"").trim(),hang:(c[4]||"").trim(),sl:(c[5]||"").trim(),dv:(c[6]||"PCS").trim(),
-            min:(c[7]||"").trim(),nhom:(c[8]||"KHÁC").trim()});
-        });
-      }
-      if(imported.length===0){toast("File rỗng",true);return;}
-      confirmModal("Nhập "+imported.length+" thiết bị","Thay thế toàn bộ dữ liệu kho hiện tại bằng file này?",function(){
-        items=imported;save();filter="all";groupFilter="";document.getElementById('q').value="";render();
-        toast("Đã nhập "+imported.length+" thiết bị");});
-    }catch(err){toast("File không đọc được",true);}
-  };
-  r.readAsText(f);e.target.value="";
-};
-function parseCSV(line){var out=[],cur="",q=false;for(var i=0;i<line.length;i++){var ch=line[i];
-  if(q){if(ch=='"'){if(line[i+1]=='"'){cur+='"';i++;}else q=false;}else cur+=ch;}
-  else{if(ch==','){out.push(cur);cur="";}else if(ch=='"')q=true;else cur+=ch;}}out.push(cur);return out;}
-
-document.getElementById('btnPrint').onclick=function(){
-  var byBin={};items.forEach(function(it){var k=it.vt||"—";(byBin[k]=byBin[k]||[]).push(it);});
-  var keys=Object.keys(byBin).sort();
-  var h='<html><head><meta charset="utf-8"><title>Nhãn kho VNT</title><style>'+
-    'body{font-family:Arial;margin:0;padding:8px}'+
-    '.card{border:1.5px solid #000;border-radius:8px;padding:8px 10px;margin:6px;display:inline-block;'+
-    'width:250px;vertical-align:top;page-break-inside:avoid}'+
-    '.vt{font-size:22px;font-weight:800;color:#0f6e56}.hd{font-size:10px;color:#666;letter-spacing:1px}'+
-    'ul{margin:6px 0 0;padding-left:16px;font-size:11px}li{margin:2px 0}'+
-    '.qr{float:right;font-size:9px;text-align:center;color:#888}'+
-    '@media print{.noprint{display:none}}</style></head><body>'+
-    '<div class="noprint" style="padding:10px"><button onclick="print()" style="padding:10px 20px;font-size:15px">🖨 In nhãn</button> — Mỗi thẻ dán lên 1 rổ để 5S</div>';
-  keys.forEach(function(k){
-    var lst=byBin[k];
-    h+='<div class="card"><span class="hd">CÔNG TY VNT — VỊ TRÍ</span><div class="vt">'+esc(k)+'</div><ul>';
-    lst.forEach(function(it){h+='<li>'+esc((it.ma?it.ma+" — ":"")+it.ten)+(it.sl?" ×"+esc(it.sl):"")+'</li>';});
-    h+='</ul></div>';
-  });
-  h+='</body></html>';
-  var w=window.open("","_blank");
-  if(w){w.document.write(h);w.document.close();}else{toast("Bật cho phép cửa sổ bật lên",true);}
-};
-
-document.getElementById('btnReset').onclick=function(){
-  confirmModal("Nạp danh sách gốc","Ghi đè toàn bộ dữ liệu hiện tại bằng danh sách thiết bị gốc từ Excel?",function(){
-    items=JSON.parse(JSON.stringify(SEED));save();filter="all";groupFilter="";document.getElementById('q').value="";render();
-    toast("Đã nạp danh sách gốc");});
-};
-
-var viewMode="list"; // list | map
-var SHELVES=["A","B","C","D","E","F"];
-var SHELF_NAME={A:"OMRON",B:"IDEC",C:"MITSUBISHI",D:"FUJI",E:"HANYOUNG · TOGI",F:"QUẠT/ĐÈN · COS · DÂY · MÁNG"};
-
-document.getElementById('vList').onclick=function(){switchView("list");};
-document.getElementById('vMap').onclick=function(){switchView("map");};
-function switchView(m){
-  viewMode=m;
-  document.getElementById('vList').classList.toggle('on',m==="list");
-  document.getElementById('vMap').classList.toggle('on',m==="map");
-  document.getElementById('list').style.display=m==="list"?"block":"none";
-  document.getElementById('mapview').style.display=m==="map"?"block":"none";
-  document.getElementById('chips').style.display=m==="list"?"flex":"none";
-  render();
+function logout(silent){
+  localStorage.removeItem(TOKEN_KEY);
+  ME=null; PROJECTS=[]; stopAuto();
+  document.getElementById("app").style.display="none";
+  document.getElementById("loginScreen").style.display="flex";
+  document.getElementById("lgPass").value="";
+  if(!silent) loginErr("");
 }
-
-function binStat(lst){
-  if(lst.length===0)return "empty-b";
-  var anyStock=false,anyZero=false,anyLow=false;
-  lst.forEach(function(it){var q=num(it.sl),m=num(it.min);
-    if(q===null||q===0)anyZero=true;else{anyStock=true;if(m!==null&&q<=m)anyLow=true;}});
-  if(anyStock&&!anyZero&&anyLow)return "low";
-  if(anyZero&&!anyStock)return "zero";
-  if(anyLow)return "low";
-  return "has";
+async function bootApp(){
+  document.getElementById("loginScreen").style.display="none";
+  document.getElementById("app").style.display="block";
+  document.getElementById("uName").textContent=ME.name;
+  document.getElementById("uRole").textContent=ROLE_LABEL[ME.role]||ME.role;
+  document.getElementById("uAvt").textContent=(ME.name||"?").trim().charAt(0).toUpperCase();
+  document.getElementById("hdrSub").textContent="VNT Việt Nam · "+(ROLE_LABEL[ME.role]||"");
+  document.getElementById("appFooter").textContent="Phiên bản "+APP_VERSION+" · Dữ liệu lưu tập trung trên máy chủ nội bộ";
+  activeTab = isBoss()? "dashboard" : "projects";
+  await refreshAll(false);
+  if(localStorage.getItem(AUTO_KEY)==="1") startAuto();
+  updatePill();
 }
-
-function renderMap(){
-  var q=document.getElementById('q').value.toLowerCase().trim();
-  // group items by bin
-  var byBin={};
-  items.forEach(function(it,i){var k=(it.vt||"?-?-?").toUpperCase();(byBin[k]=byBin[k]||[]).push({it:it,i:i});});
-  var M=document.getElementById('mapview');
-  var html='<div class="legend">'+
-    '<span><i class="lg-has"></i>Còn hàng</span><span><i class="lg-low"></i>Sắp hết</span>'+
-    '<span><i class="lg-zero"></i>Hết/trống SL</span><span><i class="lg-emp"></i>Rổ trống</span></div>';
-  SHELVES.forEach(function(s){
-    // count items in this shelf
-    var total=0;items.forEach(function(it){if((it.vt||"").toUpperCase().indexOf(s+"-")===0)total++;});
-    html+='<div class="shelf"><div class="shelf-hd"><div class="badge">'+s+'</div>'+
-      '<div class="nm">Kệ '+s+'<small>'+esc(SHELF_NAME[s]||"")+' · '+total+' thiết bị</small></div></div>'+
-      '<div class="shelf-frame">';
-    for(var t=1;t<=5;t++){
-      html+='<div class="floor-lbl">TẦNG '+t+'</div><div class="floor-row">';
-      for(var b=1;b<=4;b++){
-        var code=s+"-"+t+"-"+b;
-        var lst=(byBin[code]||[]).map(function(o){return o.it;});
-        var st=binStat(lst);
-        // search highlight: dim non-matching bins
-        var dim="";
-        if(q){var hit=lst.some(function(it){return (it.ma+" "+it.ten+" "+it.hang+" "+code).toLowerCase().indexOf(q)>=0;})||code.toLowerCase().indexOf(q)>=0;
-          if(!hit)dim=";opacity:.28";}
-        var tot=0;lst.forEach(function(it){var n2=num(it.sl);if(n2)tot+=n2;});
-        var inner='<div class="code">'+code+'</div>';
-        if(lst.length){
-          inner+='<div class="cnt">'+lst.length+' loại</div>';
-          var names=lst.map(function(it){return it.ma||it.ten;}).join(", ");
-          inner+='<div class="prod">'+esc(names)+'</div>';
-          if(tot)inner+='<div class="nqty">'+tot+'</div>';
-        }else{inner+='<div class="emptytag">trống</div>';}
-        html+='<div class="cbin '+st+'" data-code="'+code+'" style="'+dim.slice(1)+'">'+inner+'</div>';
-      }
-      html+='</div>';
+async function refreshAll(showToast){
+  try{
+    busy(true,"Đang tải dữ liệu…");
+    const d=await api("getAll");
+    PROJECTS=d.projects||[];
+    META=d.meta||{staff:[],config:null};
+    if(d.me) ME=d.me;
+    lastSync=new Date();
+    render();
+    if(showToast) toast("Đã cập nhật",`${PROJECTS.length} dự án từ máy chủ.`,"success");
+  }catch(e){
+    toast("Lỗi tải dữ liệu",esc(e.message),"err");
+  }finally{ busy(false); updatePill(); }
+}
+/* Tu dong lam moi */
+function startAuto(){ stopAuto(); localStorage.setItem(AUTO_KEY,"1"); autoTimer=setInterval(silentRefresh,45000); updatePill(); }
+function stopAuto(){ if(autoTimer){clearInterval(autoTimer);autoTimer=null;} updatePill(); }
+function toggleAuto(){
+  if(autoTimer){ localStorage.setItem(AUTO_KEY,"0"); stopAuto(); toast("Đã tắt tự động làm mới","","warn"); }
+  else { startAuto(); toast("Đã bật tự động làm mới","Màn hình tự cập nhật mỗi 45 giây.","success"); silentRefresh(); }
+}
+async function silentRefresh(){
+  if(document.getElementById("modalOverlay").classList.contains("show")) return;
+  try{
+    const d=await api("getAll");
+    const before={}; PROJECTS.forEach(p=>before[p.id]=p.updatedAt||"");
+    const changed=(d.projects||[]).filter(p=>before[p.id]!==undefined && before[p.id]!==(p.updatedAt||""));
+    PROJECTS=d.projects||[]; META=d.meta||META; lastSync=new Date();
+    changed.forEach(p=>p._flash=true);
+    render();
+    if(changed.length){
+      toast(`${changed.length} dự án vừa được cập nhật`,
+        changed.map(p=>`<b>${esc(p.name)}</b> — ${esc(p.updatedBy||"?")}`).join("<br>"),"success");
+      setTimeout(()=>{PROJECTS.forEach(p=>delete p._flash);},4000);
     }
-    html+='</div></div>';
+  }catch(e){}
+  updatePill();
+}
+function updatePill(){
+  const el=document.getElementById("syncPill");
+  if(!el) return;
+  el.className="sync-pill"+(autoTimer?" on":"");
+  const t=lastSync?lastSync.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}):"—";
+  el.innerHTML=`<span class="led"></span>${autoTimer?"Tự động":"Thủ công"} · ${t}`;
+}
+
+/* ============================================================
+   DIEU HUONG
+   ============================================================ */
+function tabsFor(){
+  const t=[];
+  if(isBoss()) t.push({k:"dashboard",l:"Tổng quan"});
+  t.push({k:"projects",l:isBoss()?"Dự án & Hồ sơ":"Dự án"});
+  t.push({k:"mywork",l:"Việc của tôi"});
+  if(isBoss()) t.push({k:"staff",l:"Nhân viên"});
+  if(isBoss()) t.push({k:"users",l:"Tài khoản"});
+  t.push({k:"guide",l:"Hướng dẫn"});
+  if(isBoss()) t.push({k:"settings",l:"⚙ Cài đặt"});
+  t.push({k:"account",l:"Tài khoản của tôi"});
+  return t;
+}
+function render(){
+  const nav=document.getElementById("tabNav");
+  const tabs=tabsFor();
+  if(!tabs.some(t=>t.k===activeTab)) activeTab=tabs[0].k;
+  const alerts=isBoss()?countAlerts():0;
+  nav.innerHTML=tabs.map(t=>{
+    const dot=(t.k==="dashboard"&&alerts)?`<span class="dot">${alerts}</span>`:"";
+    return `<button class="${t.k===activeTab?'active':''}" onclick="go('${t.k}')">${t.l}${dot}</button>`;
+  }).join("");
+  const m=document.getElementById("mainArea");
+  if(activeTab==="dashboard") m.innerHTML=viewDashboard();
+  else if(activeTab==="projects") m.innerHTML=viewProjects();
+  else if(activeTab==="mywork") m.innerHTML=viewMyWork();
+  else if(activeTab==="staff") m.innerHTML=viewStaff();
+  else if(activeTab==="users") m.innerHTML=viewUsers();
+  else if(activeTab==="guide") m.innerHTML=viewGuide();
+  else if(activeTab==="settings") m.innerHTML=viewSettings();
+  else if(activeTab==="account") m.innerHTML=viewAccount();
+}
+function go(k){activeTab=k;render();}
+
+function countAlerts(){
+  let n=0;
+  PROJECTS.forEach(p=>{
+    if(p.gateStatus==="hoan_thanh") return;
+    const d=daysBetween(p.deadline);
+    if(d!==null&&d<0) n++;
+    if(p.gateStatus==="cho_duyet") n++;
   });
-  M.innerHTML=html;
-  M.querySelectorAll('.cbin').forEach(function(el){el.onclick=function(){openBin(el.getAttribute('data-code'));};});
+  return n;
 }
 
-function openBin(code){
-  var members=[];items.forEach(function(it,i){if((it.vt||"").toUpperCase()===code)members.push({it:it,i:i});});
-  document.getElementById('sVt').textContent=code;
-  // reuse a lightweight bin sheet via the modal-like sheet is complex; use a dedicated sheet
-  var s=document.getElementById('binSheet');
-  document.getElementById('bsCode').textContent=code;
-  var body=document.getElementById('bsBody');
-  if(members.length===0){
-    body.innerHTML='<div class="empty" style="padding:24px">Rổ này chưa có thiết bị.</div>';
-  }else{
-    body.innerHTML='<div class="binlist">'+members.map(function(o){
-      var it=o.it,q=num(it.sl);var cls=q===null||q===0?"zero":"";
-      return '<div class="bl-item" data-i="'+o.i+'"><div><div class="bma">'+esc(it.ma||it.ten||"(chưa tên)")+'</div>'+
-        '<div class="bten">'+esc([it.ten,it.quy,it.hang].filter(Boolean).join(" · "))+'</div></div>'+
-        '<div class="bq" style="'+(cls==="zero"?"color:var(--red)":"")+'">'+(q===null?"–":q)+'<small>'+esc(it.dv||"")+'</small></div></div>';
-    }).join("")+'</div>';
+/* ============================================================
+   NHAN VIEN (Truong phong)
+   ============================================================ */
+function staffWork(name){
+  const projs=PROJECTS.filter(p=>sameName(p.manager,name));
+  return {projs, done:projs.filter(p=>p.gateStatus==="hoan_thanh").length,
+    late:projs.filter(p=>p.gateStatus!=="hoan_thanh"&&daysBetween(p.deadline)!==null&&daysBetween(p.deadline)<0).length};
+}
+function viewStaff(){
+  const list=META.staff||[];
+  return `<div class="card">
+    <h2>Nhân viên <span class="sub">${list.length} người</span></h2>
+    <div class="toolbar"><div class="spacer"></div><button class="btn primary" onclick="editStaff()">+ Thêm nhân viên</button></div>
+    ${list.length?`<table><thead><tr><th>Họ tên</th><th>Cấp bậc</th><th>Liên hệ</th><th>Chuyên môn</th><th>Dự án</th><th></th></tr></thead><tbody>
+      ${list.map((s,i)=>{const w=staffWork(s.name);
+      return `<tr class="${w.late?'':''}"><td data-label="Họ tên"><b>${esc(s.name)}</b>${s.code?`<div class="detail-row">${esc(s.code)}</div>`:''}</td>
+        <td data-label="Cấp bậc"><span class="badge approved">${esc((s.level||'—').split(' - ')[0])}</span><div class="detail-row">${esc(s.position||'')}</div></td>
+        <td data-label="Liên hệ"><div class="detail-row">${esc(s.phone||'—')}</div><div class="detail-row">${esc(s.email||'')}</div></td>
+        <td data-label="Chuyên môn"><div class="detail-row">${esc((s.skills||'').slice(0,50))}</div></td>
+        <td data-label="Dự án">${w.done}/${w.projs.length}${w.late?` <span class="badge crit">${w.late} trễ</span>`:''}</td>
+        <td data-label=""><button class="btn small" onclick="editStaff(${i})">Sửa</button>
+        <button class="btn small danger" onclick="delStaff(${i})">Xoá</button></td></tr>`;}).join("")}
+    </tbody></table>`:`<div class="empty-state"><div class="icon">👥</div>Chưa có nhân viên nào.</div>`}
+  </div>`;
+}
+function editStaff(i){
+  const s=(i!==undefined)?(META.staff||[])[i]:{name:"",code:"",level:STAFF_LEVELS[1],position:"",phone:"",email:"",skills:""};
+  openModalHtml(`
+    <h3>${i!==undefined?'Sửa':'Thêm'} nhân viên</h3>
+    <div class="form-row">
+      <div class="fld"><label>Họ và tên *</label><input type="text" id="st_name" value="${esc(s.name)}"></div>
+      <div class="fld"><label>Mã nhân viên</label><input type="text" id="st_code" value="${esc(s.code||'')}"></div>
+      <div class="fld"><label>Cấp bậc</label><select id="st_level">${STAFF_LEVELS.map(l=>`<option ${s.level===l?'selected':''}>${l}</option>`).join("")}</select></div>
+      <div class="fld"><label>Chức danh</label><input type="text" id="st_position" value="${esc(s.position||'')}"></div>
+      <div class="fld"><label>Điện thoại</label><input type="text" id="st_phone" value="${esc(s.phone||'')}"></div>
+      <div class="fld"><label>Email</label><input type="text" id="st_email" value="${esc(s.email||'')}"></div>
+      <div class="fld full"><label>Chuyên môn / Kỹ năng</label><textarea id="st_skills" rows="2">${esc(s.skills||'')}</textarea></div>
+    </div>
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Huỷ</button>
+      <button class="btn primary" onclick="saveStaff(${i!==undefined?i:-1})">Lưu</button></div>`);
+}
+async function saveStaff(i){
+  const name=document.getElementById("st_name").value.trim();
+  if(!name){alert("Nhập họ tên.");return;}
+  const d={name,code:document.getElementById("st_code").value.trim(),level:document.getElementById("st_level").value,
+    position:document.getElementById("st_position").value.trim(),phone:document.getElementById("st_phone").value.trim(),
+    email:document.getElementById("st_email").value.trim(),skills:document.getElementById("st_skills").value};
+  if(!META.staff) META.staff=[];
+  if(i>=0) META.staff[i]=d; else META.staff.push(d);
+  await saveMeta();
+}
+async function delStaff(i){
+  if(!confirm(`Xoá "${META.staff[i].name}" khỏi danh sách nhân viên?`)) return;
+  META.staff.splice(i,1); await saveMeta();
+}
+async function saveMeta(){
+  try{ busy(true,"Đang lưu…"); await api("saveMeta",{meta:META}); closeModal(); render(); toast("Đã lưu","","success"); }
+  catch(e){ toast("Lỗi",esc(e.message),"err"); }finally{ busy(false); }
+}
+
+/* ============================================================
+   TAI KHOAN DANG NHAP (Truong phong)
+   ============================================================ */
+let USERS=[];
+function viewUsers(){
+  return `<div class="card">
+    <h2>Tài khoản đăng nhập <span class="sub">Cấp quyền truy cập cho nhân viên</span></h2>
+    <div class="notice info">Mỗi nhân viên cần 1 tài khoản để đăng nhập. <b>Tên tài khoản phải trùng với tên trong danh sách Nhân viên</b> thì hệ thống mới nhận đúng dự án của họ.</div>
+    <div class="toolbar">
+      <button class="btn" onclick="loadUsers()">Tải danh sách</button>
+      <div class="spacer"></div>
+      <button class="btn primary" onclick="editUser()">+ Cấp tài khoản</button>
+    </div>
+    <div id="userList">${USERS.length?userTable():`<div class="empty-state">Bấm "Tải danh sách" để xem tài khoản.</div>`}</div>
+  </div>`;
+}
+function userTable(){
+  return `<table><thead><tr><th>Mã đăng nhập</th><th>Tên hiển thị</th><th>Quyền</th><th>Trạng thái</th><th></th></tr></thead><tbody>
+  ${USERS.map(u=>`<tr>
+    <td data-label="Mã"><b>${esc(u.code)}</b></td>
+    <td data-label="Tên">${esc(u.name)}</td>
+    <td data-label="Quyền"><span class="badge role-${esc(u.role)}">${esc(ROLE_LABEL[u.role]||u.role)}</span></td>
+    <td data-label="Trạng thái">${u.active?'<span class="badge released">Hoạt động</span>':'<span class="badge crit">Đã khoá</span>'}</td>
+    <td data-label=""><button class="btn small" onclick="editUser('${esc(u.code)}')">Sửa</button>
+    ${u.code!==ME.code?`<button class="btn small danger" onclick="delUser('${esc(u.code)}')">Xoá</button>`:''}</td>
+  </tr>`).join("")}</tbody></table>`;
+}
+async function loadUsers(){
+  try{ busy(true,"Đang tải…"); const d=await api("listUsers"); USERS=d.users||[]; render(); }
+  catch(e){ toast("Lỗi",esc(e.message),"err"); }finally{ busy(false); }
+}
+function editUser(code){
+  const u=code?USERS.find(x=>x.code===code):{code:"",name:"",role:"kysu",active:true};
+  const names=(META.staff||[]).map(s=>s.name);
+  openModalHtml(`
+    <h3>${code?'Sửa tài khoản':'Cấp tài khoản mới'}</h3>
+    <div class="form-row">
+      <div class="fld"><label>Mã đăng nhập *</label><input type="text" id="us_code" value="${esc(u.code)}" ${code?'disabled':''} placeholder="vd: nva"></div>
+      <div class="fld"><label>Tên hiển thị *</label><input type="text" id="us_name" value="${esc(u.name)}" list="stfList3" placeholder="Trùng tên trong DS Nhân viên">
+        <datalist id="stfList3">${names.map(n=>`<option value="${esc(n)}"></option>`).join("")}</datalist></div>
+      <div class="fld"><label>Quyền</label><select id="us_role">
+        ${Object.keys(ROLE_LABEL).map(r=>`<option value="${r}" ${u.role===r?'selected':''}>${ROLE_LABEL[r]}</option>`).join("")}</select></div>
+      <div class="fld"><label>Trạng thái</label><select id="us_active">
+        <option value="1" ${u.active!==false?'selected':''}>Hoạt động</option>
+        <option value="0" ${u.active===false?'selected':''}>Khoá</option></select></div>
+      <div class="fld full"><label>${code?'Mật khẩu mới (để trống nếu không đổi)':'Mật khẩu *'}</label>
+        <input type="text" id="us_pass" placeholder="${code?'Để trống nếu giữ nguyên':'Tối thiểu 4 ký tự'}"></div>
+    </div>
+    <div class="notice">Quyền <b>Trưởng phòng</b>: toàn quyền, duyệt Gate. <b>Leader</b>: sửa mọi dự án nhưng không duyệt Gate. <b>Kỹ sư</b>: xem tất cả, chỉ sửa dự án của mình.</div>
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Huỷ</button>
+      <button class="btn primary" onclick="saveUser('${code||''}')">Lưu</button></div>`);
+}
+async function saveUser(code){
+  const c=document.getElementById("us_code").value.trim();
+  const n=document.getElementById("us_name").value.trim();
+  const pw=document.getElementById("us_pass").value;
+  if(!c||!n){alert("Nhập đủ mã đăng nhập và tên hiển thị.");return;}
+  if(!code&&(!pw||pw.length<4)){alert("Mật khẩu tối thiểu 4 ký tự.");return;}
+  try{
+    busy(true,"Đang lưu…");
+    await api("saveUser",{user:{code:c,name:n,role:document.getElementById("us_role").value,
+      active:document.getElementById("us_active").value==="1",password:pw||undefined}});
+    closeModal(); await loadUsers(); toast("Đã lưu tài khoản","","success");
+  }catch(e){ toast("Lỗi",esc(e.message),"err"); }finally{ busy(false); }
+}
+async function delUser(code){
+  if(!confirm(`Xoá tài khoản "${code}"?`)) return;
+  try{ busy(true); await api("deleteUser",{code}); await loadUsers(); toast("Đã xoá","","warn"); }
+  catch(e){ toast("Lỗi",esc(e.message),"err"); }finally{ busy(false); }
+}
+
+/* ============================================================
+   CAI DAT HANG MUC
+   ============================================================ */
+function viewSettings(){
+  const cfg=docConfig();
+  return `<div class="card">
+    <h2>Cài đặt hạng mục hồ sơ <span class="sub">Áp dụng cho dự án tạo mới</span></h2>
+    <div class="notice">Thay đổi ở đây áp dụng cho <b>dự án tạo mới</b>. Dự án đang chạy giữ nguyên danh sách hiện có để không mất dữ liệu.</div>
+    <div class="toolbar"><button class="btn primary" onclick="addDocCfg()">+ Thêm hạng mục</button>
+      <div class="spacer"></div><button class="btn danger" onclick="resetDocCfg()">Khôi phục mặc định</button></div>
+    ${GATES.map(g=>{
+      const items=cfg.map((d,i)=>({d,i})).filter(x=>Number(x.d.gate)===g.n);
+      return `<div class="doc-gate-head g${g.n}"><span class="badge gate${g.n}">G${g.n}</span> ${esc(g.name)} — ${items.length} mục</div>
+      ${items.map(({d,i})=>`<div style="display:flex;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);">
+        <input type="text" value="${esc(d.name)}" style="flex:1;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px;" onchange="renameDocCfg(${i},this.value)">
+        <select onchange="moveDocCfg(${i},this.value)" style="padding:7px;border:1px solid var(--border);border-radius:8px;">
+          ${GATES.map(x=>`<option value="${x.n}" ${Number(d.gate)===x.n?'selected':''}>G${x.n}</option>`).join("")}</select>
+        <button class="btn small danger" onclick="delDocCfg(${i})">Xoá</button></div>`).join("")}`;
+    }).join("")}
+    <div class="modal-actions"><button class="btn primary" onclick="saveMeta()">Lưu cấu hình</button></div>
+  </div>`;
+}
+function ensureCfg(){ if(!META.config) META.config={}; if(!META.config.docs) META.config.docs=JSON.parse(JSON.stringify(DEFAULT_DOCS)); return META.config.docs; }
+function addDocCfg(){
+  const n=prompt("Tên hạng mục mới:"); if(!n||!n.trim())return;
+  const g=prompt("Thuộc Gate nào (1-5)?","2"); const gn=Number(g);
+  if(!(gn>=1&&gn<=5)){alert("Gate phải từ 1 đến 5.");return;}
+  ensureCfg().push({name:n.trim(),gate:gn}); render();
+}
+function renameDocCfg(i,v){ if(v.trim()) ensureCfg()[i].name=v.trim(); }
+function moveDocCfg(i,g){ ensureCfg()[i].gate=Number(g); render(); }
+function delDocCfg(i){ if(!confirm("Xoá hạng mục này khỏi cấu hình?"))return; ensureCfg().splice(i,1); render(); }
+function resetDocCfg(){ if(!confirm("Khôi phục danh sách 22 hạng mục mặc định?"))return;
+  META.config=META.config||{}; META.config.docs=JSON.parse(JSON.stringify(DEFAULT_DOCS)); render(); }
+
+/* ============================================================
+   HUONG DAN & TAI KHOAN CUA TOI
+   ============================================================ */
+function viewGuide(){
+  return `<div class="card">
+    <h2>Quy trình 5 Gate</h2>
+    <div class="gate-track">${GATES.map(g=>`<div class="gate-node g${g.n} current"><span class="gn">G${g.n}</span>${esc(g.name.split(' - ')[1]||g.name)}</div>`).join("")}</div>
+    ${GATES.map(g=>`<div style="margin-top:14px;">
+      <div class="doc-gate-head g${g.n}"><span class="badge gate${g.n}">G${g.n}</span> ${esc(g.name)}</div>
+      <div class="detail-row" style="margin-bottom:6px;"><b>Mục tiêu:</b> ${esc(g.goal)}</div>
+      <div style="font-size:12.5px;"><b>Kỹ sư/NV làm:</b><ul style="margin:4px 0 0 18px;line-height:1.8;">${g.nvTasks.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div>
+      ${g.tpTasks?`<div style="font-size:12.5px;margin-top:6px;"><b>Trưởng phòng kiểm tra:</b><ul style="margin:4px 0 0 18px;line-height:1.8;">${g.tpTasks.map(t=>`<li>${esc(t)}</li>`).join("")}</ul></div>`:''}
+    </div>`).join("")}
+  </div>
+  <div class="card">
+    <h2>Cách làm việc trên hệ thống</h2>
+    <div class="notice info"><b>Với Kỹ sư / Nhân viên:</b><br>
+      1. Vào tab <b>Việc của tôi</b> xem dự án được giao và yêu cầu sửa (nếu có).<br>
+      2. Mở dự án → cập nhật trạng thái hồ sơ, đính kèm file Excel/CAD/PDF.<br>
+      3. Xong bấm <b>📤 Gửi Trưởng phòng duyệt</b>. Có thể sửa và gửi lại nhiều lần.<br>
+      4. Nếu bị trả lại, khung đỏ sẽ ghi rõ cần bổ sung gì.</div>
+    <div class="notice info"><b>Với Trưởng phòng:</b><br>
+      1. Tab <b>Tổng quan</b> hiện dự án chờ duyệt, trễ hạn, sắp tới hạn.<br>
+      2. Mở dự án → xem hồ sơ, tải file kiểm tra.<br>
+      3. Đạt → <b>Duyệt → Gate tiếp</b>. Chưa đạt → <b>↩ Yêu cầu gửi lại</b> kèm nhận xét (giữ nguyên Gate).<br>
+      4. Riêng G4: <b>PASS</b> sang G5, hoặc <b>REVISE</b> quay về G3.</div>
+    <div class="notice"><b>Nguyên tắc:</b> AN TOÀN → CHẤT LƯỢNG → ĐỘ TIN CẬY → TIẾN ĐỘ → CHI PHÍ. Không dùng hồ sơ WIP để sản xuất.</div>
+  </div>`;
+}
+function viewAccount(){
+  return `<div class="card">
+    <h2>Tài khoản của tôi</h2>
+    <div class="grid-kpi">
+      <div class="kpi-box"><div class="num" style="font-size:19px;">${esc(ME.name)}</div><div class="lbl">Tên hiển thị</div></div>
+      <div class="kpi-box"><div class="num" style="font-size:19px;">${esc(ME.code)}</div><div class="lbl">Mã đăng nhập</div></div>
+      <div class="kpi-box"><div class="num" style="font-size:16px;">${esc(ROLE_LABEL[ME.role]||ME.role)}</div><div class="lbl">Quyền</div></div>
+      <div class="kpi-box"><div class="num">${PROJECTS.filter(p=>sameName(p.manager,ME.name)).length}</div><div class="lbl">Dự án phụ trách</div></div>
+    </div>
+    <h2 style="margin-top:8px;">Đổi mật khẩu</h2>
+    <div class="form-row">
+      <div class="fld"><label>Mật khẩu hiện tại</label><input type="password" id="pw_old"></div>
+      <div class="fld"><label>Mật khẩu mới</label><input type="password" id="pw_new"></div>
+    </div>
+    <button class="btn primary" onclick="changePw()">Đổi mật khẩu</button>
+    <div class="notice" style="margin-top:16px;">Máy chủ: <span class="detail-row">${esc(getServer().slice(0,60))}…</span>
+      <div style="margin-top:8px;"><button class="btn small" onclick="showSetup();logout();">Đổi địa chỉ máy chủ</button></div></div>
+  </div>`;
+}
+async function changePw(){
+  const o=document.getElementById("pw_old").value, n=document.getElementById("pw_new").value;
+  if(!o||!n){alert("Nhập đủ mật khẩu cũ và mới.");return;}
+  if(n.length<4){alert("Mật khẩu mới tối thiểu 4 ký tự.");return;}
+  try{
+    busy(true,"Đang đổi…");
+    const d=await api("changePassword",{oldPassword:o,newPassword:n});
+    if(d.token) localStorage.setItem(TOKEN_KEY,d.token);
+    document.getElementById("pw_old").value=""; document.getElementById("pw_new").value="";
+    toast("Đã đổi mật khẩu","Lần sau đăng nhập bằng mật khẩu mới.","success");
+  }catch(e){ toast("Lỗi",esc(e.message),"err"); }finally{ busy(false); }
+}
+
+/* ============================================================
+   CHI TIET DU AN
+   ============================================================ */
+let CUR = null;   // du an dang mo
+
+function openProject(id){
+  CUR = PROJECTS.find(p=>p.id===id);
+  if(!CUR) return;
+  if(!CUR.docs||!CUR.docs.length) CUR.docs=docList().map(n=>({name:n,status:"WIP",files:[]}));
+  CUR.docs.forEach(d=>{if(!d.files)d.files=[];});
+  renderProjectModal();
+}
+function renderProjectModal(){
+  const p=CUR;
+  const g=GATES.find(x=>String(x.n)===String(p.gate))||GATES[0];
+  const gs=p.gateStatus||"cho_nv";
+  const editable=canEdit(p)&&gs!=="hoan_thanh";
+  const pr=docProgress(p);
+  const curGate=Number(p.gate)||1;
+  const vis=p.docs.map((d,i)=>({d,i})).filter(x=>docGate(x.d.name)<=curGate);
+  const locked=p.docs.length-vis.length;
+  const groups={};
+  vis.forEach(x=>{const gg=docGate(x.d.name);(groups[gg]=groups[gg]||[]).push(x);});
+  const pend=(p.feedback||[]).filter(f=>!f.resolved&&String(f.gate)===String(p.gate));
+
+  openModalHtml(`
+    <h3>${esc(p.name)} <span class="badge gate${g.n}">${esc(g.name)}</span></h3>
+    <div class="detail-row" style="margin-bottom:10px;">
+      Khách hàng: <b>${esc(p.customer||'—')}</b> · PIC: <b>${esc(p.manager||'—')}</b> · Deadline: <b>${esc(p.deadline||'—')}</b>
+      ${p.updatedBy?` · Cập nhật gần nhất: <b>${esc(p.updatedBy)}</b> ${p.updatedAt?new Date(p.updatedAt).toLocaleString('vi-VN'):''}`:''}
+    </div>
+
+    <div class="gate-track">
+      ${GATES.map(x=>{
+        const cur=Number(p.gate)===x.n, dn=Number(p.gate)>x.n||gs==="hoan_thanh";
+        return `<div class="gate-node g${x.n} ${cur?'current':(dn?'done':'')}">
+          <span class="gn">G${x.n}${dn&&!cur?' ✓':''}</span>${esc(x.name.split(' - ')[1]||x.name)}</div>`;
+      }).join("")}
+    </div>
+
+    <div class="notice ${gs==='cho_duyet'?'info':(gs==='hoan_thanh'?'ok':'')}">
+      <b>${esc(GATE_STATUS_LABEL[gs])}</b> — ${esc(g.goal)}<br>
+      <b>Việc của ${esc(p.manager||'NV')} ở Gate này:</b> ${(g.nvTasks||[]).join(" · ")}
+    </div>
+
+    ${pend.length?`<div class="notice danger"><b>⚠ Trưởng phòng yêu cầu sửa lại (${pend.length}):</b>
+      ${pend.map(f=>`<div style="margin-top:6px;white-space:pre-wrap;border-left:3px solid var(--red);padding-left:9px;">${esc(f.note)}<div class="detail-row">${esc(f.date||'')}</div></div>`).join("")}
+      ${canEdit(p)?`<div style="margin-top:8px;">Sửa xong bấm <b>"Gửi Trưởng phòng duyệt"</b> ở cuối. Không giới hạn số lần gửi.</div>`:''}</div>`:''}
+
+    ${isBoss()&&gs==="cho_duyet"?`<div class="notice info"><b>Cần anh quyết định:</b> ${esc(p.updatedBy||p.manager)} đã gửi bài.
+      ${Number(p.gate)===4?`Bấm <b>PASS</b> để sang G5, hoặc <b>REVISE</b> để trả về G3.`:`Bấm <b>Duyệt</b> để sang Gate tiếp, hoặc <b>Yêu cầu gửi lại</b> nếu chưa đạt.`}</div>`:''}
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:16px 0 6px;">
+      <b style="font-size:13.5px;">Hồ sơ dự án (${pr.released}/${pr.total} RELEASED)</b>
+      <span class="detail-row">${locked?`Còn ${locked} mục mở ở Gate sau`:'Đã mở hết'}</span>
+    </div>
+    <div class="progress-wrap" style="margin-bottom:10px;"><div class="progress-bar" style="width:${pr.pct}%"></div></div>
+
+    ${Object.keys(groups).sort((a,b)=>a-b).map(gg=>{
+      const gi=GATES.find(x=>x.n===Number(gg));
+      return `<div class="doc-gate-head g${gg}"><span class="badge gate${gg}">G${gg}</span> ${esc(gi?gi.name:'Gate '+gg)}</div>
+      ${groups[gg].map(({d,i})=>`
+        <div style="border-bottom:1px solid var(--border);padding:9px 0;">
+          <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;">
+            <div style="flex:1;min-width:150px;font-weight:600;">${esc(d.name)}</div>
+            <select ${editable?'':'disabled'} onchange="setDoc(${i},this.value)" style="padding:6px 9px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;">
+              ${DOC_STATUS.map(s=>`<option ${d.status===s?'selected':''}>${s}</option>`).join("")}
+            </select>
+          </div>
+          ${(d.files||[]).map(f=>`
+            <div style="display:flex;align-items:center;gap:8px;font-size:12px;padding:4px 0 4px 4px;color:var(--text-light);">
+              <span style="flex:1;">📎 ${esc(f.name)} (${fmtSize(f.size)})</span>
+              <button class="btn small" onclick="dlFile('${f.id}','${esc(f.name)}')">Tải</button>
+              ${editable?`<button class="btn small danger" onclick="rmFile(${i},'${f.id}')">Xoá</button>`:''}
+            </div>`).join("")}
+          ${editable?`<label class="btn small" style="cursor:pointer;margin-top:5px;display:inline-block;">+ Đính kèm file
+            <input type="file" multiple style="display:none" onchange="upFiles(${i},this.files)"></label>`:''}
+        </div>`).join("")}`;
+    }).join("")}
+
+    ${(p.feedback||[]).length?`<div style="margin-top:16px;border-top:2px solid var(--border);padding-top:12px;">
+      <b style="font-size:13px;">Lịch sử trao đổi</b>
+      ${p.feedback.slice().reverse().map(f=>`
+        <div style="border-left:3px solid ${f.resolved?'var(--green)':'var(--amber)'};background:${f.resolved?'var(--green-bg)':'var(--amber-bg)'};border-radius:8px;padding:8px 11px;margin-top:6px;">
+          <div class="detail-row"><b>${esc(f.gateName||'G'+f.gate)}</b> · ${esc(f.date||'')} <span class="badge ${f.resolved?'closed':'open'}">${f.resolved?'Đã xử lý':'Chờ sửa'}</span></div>
+          <div style="font-size:12.5px;margin-top:4px;white-space:pre-wrap;">${esc(f.note)}</div>
+        </div>`).join("")}
+    </div>`:''}
+
+    <div class="modal-actions" style="flex-wrap:wrap;">
+      <button class="btn" onclick="closeModal()">Đóng</button>
+      ${isLeader()?`<button class="btn" onclick="editProject('${p.id}')">Sửa thông tin</button>`:''}
+      ${editable?`<button class="btn" onclick="openTasks('${p.id}')">Công việc (${(p.tasks||[]).length})</button>`:''}
+      ${editable&&gs!=="cho_duyet"?`<button class="btn success" onclick="submitToBoss()">📤 Gửi Trưởng phòng duyệt</button>`:''}
+      ${isBoss()&&gs==="cho_duyet"?(Number(p.gate)===4
+        ? `<button class="btn danger" onclick="gateDecide('revise')">🔴 REVISE → G3</button><button class="btn success" onclick="gateDecide('pass')">🟢 PASS → G5</button>`
+        : `<button class="btn danger" onclick="gateDecide('resubmit')">↩ Yêu cầu gửi lại</button><button class="btn success" onclick="gateDecide('approve')">✓ Duyệt → Gate tiếp</button>`):''}
+      ${isBoss()&&Number(p.gate)===5&&gs!=="hoan_thanh"&&gs!=="cho_duyet"?`<button class="btn success" onclick="gateDecide('release')">🟢 Phê duyệt Release</button>`:''}
+    </div>`);
+}
+function setDoc(i,v){ CUR.docs[i].status=v; }
+
+/* ---- Upload / download file qua may chu ---- */
+const UP_CHUNK=3*1024*1024;
+async function upFiles(idx,fileList){
+  const files=Array.from(fileList);
+  for(const file of files){
+    if(file.size>100*1024*1024){ toast("File quá lớn",esc(file.name)+" vượt 100MB.","err"); continue; }
+    try{
+      busy(true,`Đang tải lên: ${file.name}`);
+      const dataUrl=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file);});
+      const fid=uid("f");
+      if(dataUrl.length<=UP_CHUNK){
+        await api("uploadFile",{fileId:fid,data:dataUrl});
+      }else{
+        const n=Math.ceil(dataUrl.length/UP_CHUNK);
+        for(let c=0;c<n;c++){
+          document.getElementById("busyText").textContent=`Đang tải lên ${file.name} — phần ${c+1}/${n}`;
+          await api("uploadFile",{fileId:fid,chunkIndex:c,isLast:c===n-1,data:dataUrl.slice(c*UP_CHUNK,(c+1)*UP_CHUNK)});
+        }
+      }
+      CUR.docs[idx].files.push({id:fid,name:file.name,type:file.type||"application/octet-stream",size:file.size,uploadedAt:todayStr(),by:ME.name});
+      await saveProject(true);
+      renderProjectModal();
+      toast("Đã tải lên",esc(file.name),"success");
+    }catch(e){ toast("Lỗi tải file",esc(e.message),"err"); }
+    finally{ busy(false); }
   }
-  body.querySelectorAll('.bl-item').forEach(function(el){el.onclick=function(){
-    closeBinSheet();openEdit(parseInt(el.getAttribute('data-i')));};});
-  document.getElementById('bsAdd').onclick=function(){closeBinSheet();openEdit(-1);
-    setTimeout(function(){document.getElementById('sVtEdit').value=code;},50);};
-  document.getElementById('backdrop').classList.add('show');
-  s.classList.add('show');
 }
-function closeBinSheet(){document.getElementById('binSheet').classList.remove('show');
-  document.getElementById('backdrop').classList.remove('show');}
-window.closeBinSheet=closeBinSheet;
-
-var _origRender=render;
-render=function(){
-  if(viewMode==="map"){
-    // still update KPIs
-    var all=items.length;
-    var stock=items.filter(function(it){return num(it.sl)>0;}).length;
-    var low=items.filter(function(it){var q=num(it.sl),m=num(it.min);return q!==null&&m!==null&&q<=m&&q>0;}).length;
-    var zero=items.filter(function(it){var q=num(it.sl);return q===null||q===0;}).length;
-    document.getElementById('k-all').textContent=all;
-    document.getElementById('k-stock').textContent=stock;
-    document.getElementById('k-low').textContent=low;
-    document.getElementById('k-zero').textContent=zero;
-    renderMap();
-  }else{_origRender();}
-};
-var _origClose=closeSheet;
-closeSheet=function(){_origClose();closeBinSheet();};
-
-loadStore();
-
-// ===== Chế độ khóa (chỉ xem) =====
-var EDIT_PASS="vnt2025"; // mã mở khóa chỉnh sửa — bạn có thể đổi
-var unlocked=false;
-function applyLock(){
-  document.body.classList.toggle('readonly',!unlocked);
-  document.getElementById('lockBtn').textContent=unlocked?"🔓":"🔒";
-  document.getElementById('lockBtn').classList.toggle('unlocked',unlocked);
+async function dlFile(fid,name){
+  try{
+    busy(true,"Đang tải file…");
+    let d=await api("getFile",{fileId:fid,chunkIndex:0});
+    let data=d.data;
+    if(!d.isLast){
+      let c=1;
+      while(true){
+        const r=await api("getFile",{fileId:fid,chunkIndex:c});
+        data+=r.data;
+        if(r.isLast||!r.data) break;
+        c++;
+      }
+    }
+    const a=document.createElement("a");
+    a.href=data; a.download=name; a.click();
+  }catch(e){ toast("Lỗi tải file",esc(e.message),"err"); }
+  finally{ busy(false); }
 }
-document.getElementById('lockBtn').onclick=function(){
-  if(unlocked){unlocked=false;applyLock();closeSheet();toast("Đã khóa — chế độ xem");return;}
-  var p=prompt("Nhập mã quản lý để mở khóa chỉnh sửa:");
-  if(p===null)return;
-  if(p===EDIT_PASS){unlocked=true;applyLock();toast("Đã mở khóa — có thể chỉnh sửa");}
-  else toast("Sai mã",true);
-};
-applyLock();
+async function rmFile(idx,fid){
+  if(!confirm("Xoá file đính kèm này?")) return;
+  CUR.docs[idx].files=CUR.docs[idx].files.filter(f=>f.id!==fid);
+  try{ await api("deleteFile",{fileId:fid}); }catch(e){}
+  await saveProject(true);
+  renderProjectModal();
+}
 
-render();
+/* ---- Luu du an ---- */
+async function saveProject(silent){
+  try{
+    if(!silent) busy(true,"Đang lưu…");
+    const d=await api("saveProject",{project:CUR});
+    const i=PROJECTS.findIndex(x=>x.id===CUR.id);
+    if(i>=0) PROJECTS[i]=d.project;
+    CUR=d.project;
+    if(!silent) toast("Đã lưu","Dữ liệu đã cập nhật lên máy chủ.","success");
+    render();
+    return true;
+  }catch(e){ toast("Lỗi lưu",esc(e.message),"err"); return false; }
+  finally{ if(!silent) busy(false); }
+}
+async function submitToBoss(){
+  if(!confirm(`Gửi dự án "${CUR.name}" cho Trưởng phòng duyệt?\n\nSau khi gửi anh/chị vẫn sửa và gửi lại được.`)) return;
+  CUR.gateStatus="cho_duyet";
+  CUR.awaitingResubmit=false;
+  if(await saveProject()){ closeModal(); toast("Đã gửi","Trưởng phòng sẽ nhận được ngay.","success"); }
+}
+async function gateDecide(kind){
+  const p=CUR, gate=Number(p.gate)||1;
+  try{
+    busy(true,"Đang xử lý…");
+    if(kind==="resubmit"||kind==="revise"){
+      const note=prompt(kind==="revise"
+        ? `REVISE — Design Review chưa đạt.\nNhập nhận xét để ${p.manager||'NV'} sửa (dự án sẽ quay về G3):`
+        : `YÊU CẦU GỬI LẠI — ${p.name}\nNhập nội dung cần ${p.manager||'NV'} bổ sung (Gate giữ nguyên):`,"");
+      if(note===null||!note.trim()){ busy(false); return; }
+      const fb={id:uid("fb"),date:todayStr(),at:new Date().toISOString(),gate:kind==="revise"?"4":String(gate),
+        gateName:(GATES.find(x=>x.n===(kind==="revise"?4:gate))||{}).name,from:ME.name,to:p.manager||"",note:note.trim(),resolved:false};
+      const d=await api("setGate",{id:p.id,gate:kind==="revise"?"3":String(gate),gateStatus:"cho_nv",feedback:fb,awaitingResubmit:true});
+      afterGate(d.project, kind==="revise"?"Đã REVISE — dự án quay về G3":"Đã yêu cầu gửi lại");
+    } else if(kind==="pass"){
+      const d=await api("setGate",{id:p.id,gate:"5",gateStatus:"cho_nv",resolveGate:"4",awaitingResubmit:false});
+      afterGate(d.project,"PASS Design Review — chuyển sang G5");
+    } else if(kind==="release"){
+      if(!confirm(`Phê duyệt Release — xác nhận KẾT THÚC dự án "${p.name}"?`)){busy(false);return;}
+      const d=await api("setGate",{id:p.id,gateStatus:"hoan_thanh",resolveGate:"5",awaitingResubmit:false});
+      afterGate(d.project,"Dự án đã hoàn thành (RELEASED)");
+    } else {
+      if(gate>=5){
+        const d=await api("setGate",{id:p.id,gateStatus:"hoan_thanh",resolveGate:"5",awaitingResubmit:false});
+        afterGate(d.project,"Dự án đã hoàn thành (RELEASED)"); return;
+      }
+      const nx=GATES.find(x=>x.n===gate+1);
+      if(!confirm(`Duyệt và chuyển "${p.name}" sang ${nx.name}?\n(${p.manager||'NV'} sẽ làm: ${nx.nvRole})`)){busy(false);return;}
+      const d=await api("setGate",{id:p.id,gate:String(gate+1),gateStatus:"cho_nv",resolveGate:String(gate),awaitingResubmit:false});
+      afterGate(d.project,`Đã chuyển sang ${nx.name}`);
+    }
+  }catch(e){ toast("Lỗi",esc(e.message),"err"); }
+  finally{ busy(false); }
+}
+function afterGate(proj,msg){
+  const i=PROJECTS.findIndex(x=>x.id===proj.id);
+  if(i>=0) PROJECTS[i]=proj;
+  CUR=proj;
+  render(); renderProjectModal();
+  toast(msg,"","success");
+}
+
+/* ---- Sua thong tin du an ---- */
+function editProject(id){
+  const p=id?PROJECTS.find(x=>x.id===id):{name:"",customer:"",manager:"",gate:"2",deadline:"",note:""};
+  const names=(META.staff||[]).map(s=>s.name);
+  openModalHtml(`
+    <h3>${id?'Sửa thông tin dự án':'Thêm dự án mới'}</h3>
+    <div class="form-row">
+      <div class="fld full"><label>Tên dự án / máy *</label><input type="text" id="ep_name" value="${esc(p.name)}"></div>
+      <div class="fld"><label>Khách hàng</label><input type="text" id="ep_customer" value="${esc(p.customer||'')}"></div>
+      <div class="fld"><label>PIC / Kỹ sư phụ trách *</label>
+        <input type="text" id="ep_manager" value="${esc(p.manager||'')}" list="stfList">
+        <datalist id="stfList">${names.map(n=>`<option value="${esc(n)}"></option>`).join("")}</datalist></div>
+      <div class="fld"><label>Deadline</label><input type="date" id="ep_deadline" value="${esc(p.deadline||'')}"></div>
+      ${isBoss()?`<div class="fld"><label>Gate</label><select id="ep_gate">${GATES.map(g=>`<option value="${g.n}" ${String(p.gate)===String(g.n)?'selected':''}>${esc(g.name)}</option>`).join("")}</select></div>`:''}
+      <div class="fld full"><label>Ghi chú</label><textarea id="ep_note" rows="2">${esc(p.note||'')}</textarea></div>
+    </div>
+    <div class="modal-actions">
+      ${id&&isBoss()?`<button class="btn danger" onclick="delProject('${id}')">Xoá dự án</button>`:''}
+      <div class="spacer"></div>
+      <button class="btn" onclick="closeModal()">Huỷ</button>
+      <button class="btn primary" onclick="saveProjectInfo('${id||''}')">Lưu</button>
+    </div>`);
+}
+async function saveProjectInfo(id){
+  const name=document.getElementById("ep_name").value.trim();
+  const manager=document.getElementById("ep_manager").value.trim();
+  if(!name){alert("Vui lòng nhập tên dự án.");return;}
+  if(!manager){alert("Vui lòng nhập người phụ trách.");return;}
+  const data={name,customer:document.getElementById("ep_customer").value.trim(),manager,
+    deadline:document.getElementById("ep_deadline").value,note:document.getElementById("ep_note").value};
+  const gEl=document.getElementById("ep_gate");
+  try{
+    busy(true,"Đang lưu…");
+    if(id){
+      const p=PROJECTS.find(x=>x.id===id);
+      Object.assign(p,data);
+      if(gEl) p.gate=gEl.value;
+      const d=await api("saveProject",{project:p});
+      PROJECTS[PROJECTS.findIndex(x=>x.id===id)]=d.project;
+      if(CUR&&CUR.id===id) CUR=d.project;
+      toast("Đã lưu","","success");
+    }else{
+      data.gate=gEl?gEl.value:"2"; data.gateStatus="cho_nv"; data.feedback=[]; data.tasks=[];
+      data.docs=docList().map(n=>({name:n,status:"WIP",files:[]}));
+      const d=await api("createProject",{project:data});
+      PROJECTS.push(d.project);
+      toast("Đã tạo dự án",esc(d.project.name),"success");
+    }
+    closeModal(); render();
+  }catch(e){ toast("Lỗi",esc(e.message),"err"); }
+  finally{ busy(false); }
+}
+async function delProject(id){
+  const p=PROJECTS.find(x=>x.id===id);
+  if(!confirm(`Xoá vĩnh viễn dự án "${p.name}"?\nHành động không thể hoàn tác.`)) return;
+  try{
+    busy(true,"Đang xoá…");
+    await api("deleteProject",{id});
+    PROJECTS=PROJECTS.filter(x=>x.id!==id);
+    closeModal(); render(); toast("Đã xoá dự án","","warn");
+  }catch(e){ toast("Lỗi",esc(e.message),"err"); }
+  finally{ busy(false); }
+}
+
+/* ---- Cong viec trong du an ---- */
+function openTasks(id){
+  const p=PROJECTS.find(x=>x.id===id); CUR=p;
+  const names=(META.staff||[]).map(s=>s.name);
+  openModalHtml(`
+    <h3>Công việc — ${esc(p.name)}</h3>
+    ${(p.tasks||[]).length?`<table><thead><tr><th>Công việc</th><th>Người làm</th><th>Deadline</th><th>Trạng thái</th><th></th></tr></thead><tbody>
+      ${(p.tasks||[]).map((t,i)=>`<tr>
+        <td data-label="Công việc">${esc(t.task||'')}</td>
+        <td data-label="Người làm">${esc(t.person||'')}</td>
+        <td data-label="Deadline">${esc(t.deadline||'—')}</td>
+        <td data-label="Trạng thái"><select onchange="taskStatus(${i},this.value)" style="padding:5px;border-radius:7px;border:1px solid var(--border);font-size:12px;">
+          ${TASK_STATUS.map(s=>`<option ${t.status===s?'selected':''}>${s}</option>`).join("")}</select></td>
+        <td data-label=""><button class="btn small danger" onclick="delTask(${i})">Xoá</button></td>
+      </tr>`).join("")}</tbody></table>`:`<div class="empty-state">Chưa có công việc nào.</div>`}
+    <div style="border-top:1px solid var(--border);margin-top:14px;padding-top:14px;">
+      <div class="form-row">
+        <div class="fld full"><label>Công việc mới</label><input type="text" id="nt_task" placeholder="VD: Vẽ schematic tủ MCP-01"></div>
+        <div class="fld"><label>Người thực hiện</label><input type="text" id="nt_person" list="stfList2" value="${esc(p.manager||'')}">
+          <datalist id="stfList2">${names.map(n=>`<option value="${esc(n)}"></option>`).join("")}</datalist></div>
+        <div class="fld"><label>Deadline</label><input type="date" id="nt_deadline"></div>
+      </div>
+      <button class="btn primary" onclick="addTask()">+ Thêm công việc</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="renderProjectModal()">← Quay lại dự án</button>
+      <button class="btn primary" onclick="saveTasks()">Lưu</button>
+    </div>`);
+}
+function taskStatus(i,v){ CUR.tasks[i].status=v; }
+function delTask(i){ CUR.tasks.splice(i,1); openTasks(CUR.id); }
+function addTask(){
+  const t=document.getElementById("nt_task").value.trim();
+  if(!t){alert("Nhập nội dung công việc.");return;}
+  if(!CUR.tasks) CUR.tasks=[];
+  CUR.tasks.push({id:uid("t"),task:t,person:document.getElementById("nt_person").value.trim(),
+    deadline:document.getElementById("nt_deadline").value,status:"Chưa làm"});
+  openTasks(CUR.id);
+}
+async function saveTasks(){ if(await saveProject()) openTasks(CUR.id); }
+
+/* ============================================================
+   KHOI DONG
+   ============================================================ */
+async function start(){
+  if(!getServer()){ showSetup(); return; }
+  const tk=getToken();
+  if(!tk){ document.getElementById("lgCode").focus(); return; }
+  try{
+    busy(true,"Đang kết nối máy chủ…");
+    const d=await api("getAll");
+    ME=d.me; PROJECTS=d.projects||[]; META=d.meta||{staff:[],config:null};
+    lastSync=new Date();
+    document.getElementById("loginScreen").style.display="none";
+    document.getElementById("app").style.display="block";
+    document.getElementById("uName").textContent=ME.name;
+    document.getElementById("uRole").textContent=ROLE_LABEL[ME.role]||ME.role;
+    document.getElementById("uAvt").textContent=(ME.name||"?").trim().charAt(0).toUpperCase();
+    document.getElementById("hdrSub").textContent="VNT Việt Nam · "+(ROLE_LABEL[ME.role]||"");
+    document.getElementById("appFooter").textContent="Phiên bản "+APP_VERSION+" · Dữ liệu lưu tập trung trên máy chủ nội bộ";
+    activeTab=isBoss()?"dashboard":"projects";
+    render();
+    if(localStorage.getItem(AUTO_KEY)==="1") startAuto();
+    updatePill();
+  }catch(e){
+    localStorage.removeItem(TOKEN_KEY);
+    document.getElementById("lgCode").focus();
+  }finally{ busy(false); }
+}
+document.addEventListener("keydown",e=>{
+  if(e.key==="Enter"&&document.getElementById("loginScreen").style.display!=="none"){
+    if(document.getElementById("loginBox").style.display!=="none") doLogin();
+  }
+  if(e.key==="Escape") closeModal();
+});
+document.addEventListener("DOMContentLoaded",start);
+
+/* ============================================================
+   TONG QUAN
+   ============================================================ */
+function viewDashboard(){
+  const waiting=PROJECTS.filter(p=>p.gateStatus==="cho_duyet");
+  const overdue=PROJECTS.filter(p=>p.gateStatus!=="hoan_thanh"&&daysBetween(p.deadline)!==null&&daysBetween(p.deadline)<0);
+  const dueSoon=PROJECTS.filter(p=>{const d=daysBetween(p.deadline);return p.gateStatus!=="hoan_thanh"&&d!==null&&d>=0&&d<=3;});
+  const done=PROJECTS.filter(p=>p.gateStatus==="hoan_thanh").length;
+  let rel=0,tot=0; PROJECTS.forEach(p=>{const pr=docProgress(p);rel+=pr.released;tot+=pr.total;});
+  const gateCount={1:0,2:0,3:0,4:0,5:0};
+  PROJECTS.forEach(p=>{gateCount[Number(p.gate)||1]++;});
+
+  let alerts="";
+  if(overdue.length||waiting.length||dueSoon.length){
+    alerts=`<div class="card" style="border-left:5px solid ${overdue.length?'var(--red)':'var(--amber)'};">
+      <h2>${overdue.length?'⚠ Cần xử lý ngay':'⏰ Cần chú ý'}</h2>
+      ${overdue.length?`<div class="notice danger"><b>${overdue.length} dự án TRỄ HẠN:</b><br>${overdue.slice(0,5).map(p=>`• <b>${esc(p.name)}</b> (${esc(p.manager||'chưa giao')}) — trễ ${Math.abs(daysBetween(p.deadline))} ngày`).join("<br>")}</div>`:''}
+      ${waiting.length?`<div class="notice"><b>${waiting.length} dự án đang chờ anh duyệt:</b><br>${waiting.slice(0,5).map(p=>`• <b>${esc(p.name)}</b> — ${esc(p.updatedBy||p.manager||'')} gửi lúc ${p.updatedAt?new Date(p.updatedAt).toLocaleString('vi-VN'):'?'}`).join("<br>")}</div>`:''}
+      ${dueSoon.length?`<div class="notice"><b>${dueSoon.length} dự án sắp tới hạn:</b> ${dueSoon.map(p=>esc(p.name)+` (còn ${daysBetween(p.deadline)}d)`).join(", ")}</div>`:''}
+    </div>`;
+  } else if(PROJECTS.length){
+    alerts=`<div class="notice ok">✓ Không có cảnh báo — toàn bộ dự án đang trong tiến độ.</div>`;
+  }
+
+  return `
+    ${alerts}
+    <div class="grid-kpi">
+      <div class="kpi-box"><div class="num">${PROJECTS.length}</div><div class="lbl">Tổng dự án</div></div>
+      <div class="kpi-box ${tot&&rel/tot>=.5?'ok':'mid'}"><div class="num">${tot?Math.round(rel/tot*100):0}%</div><div class="lbl">Hồ sơ RELEASED (${rel}/${tot})</div></div>
+      <div class="kpi-box ${waiting.length?'mid':'ok'}"><div class="num">${waiting.length}</div><div class="lbl">Chờ anh duyệt</div></div>
+      <div class="kpi-box ${overdue.length?'warn':'ok'}"><div class="num">${overdue.length}</div><div class="lbl">Dự án trễ hạn</div></div>
+      <div class="kpi-box ok"><div class="num">${done}</div><div class="lbl">Đã Release</div></div>
+      <div class="kpi-box"><div class="num">${(META.staff||[]).length}</div><div class="lbl">Nhân sự</div></div>
+    </div>
+    <div class="card">
+      <h2>Phân bố dự án theo Gate</h2>
+      <div class="gate-track">
+        ${GATES.map(g=>`<div class="gate-node g${g.n} ${gateCount[g.n]?'current':''}">
+          <span class="gn">${gateCount[g.n]}</span>${esc(g.name.split(' - ')[1]||g.name)}</div>`).join("")}
+      </div>
+    </div>
+    <div class="card">
+      <h2>Dự án cần xử lý <span class="sub">Sắp xếp theo mức ưu tiên</span></h2>
+      ${PROJECTS.length? tableProjects(
+        PROJECTS.slice().sort((a,b)=>{
+          const rank=p=>p.gateStatus==="cho_duyet"?0:(daysBetween(p.deadline)!==null&&daysBetween(p.deadline)<0&&p.gateStatus!=="hoan_thanh"?1:(p.gateStatus==="hoan_thanh"?3:2));
+          return rank(a)-rank(b);
+        }).slice(0,8)
+      ):`<div class="empty-state"><div class="icon">📁</div>Chưa có dự án nào.</div>`}
+    </div>`;
+}
+
+/* ============================================================
+   DANH SACH DU AN
+   ============================================================ */
+function tableProjects(list){
+  return `<table><thead><tr><th>Dự án</th><th>PIC</th><th>Gate</th><th>Trạng thái</th><th>Hồ sơ</th><th>Deadline</th><th>Thao tác</th></tr></thead><tbody>
+  ${list.map(p=>{
+    const pr=docProgress(p);
+    const g=GATES.find(x=>String(x.n)===String(p.gate))||GATES[0];
+    const gs=p.gateStatus||"cho_nv";
+    const dd=daysBetween(p.deadline);
+    const late=gs!=="hoan_thanh"&&dd!==null&&dd<0;
+    const mine=sameName(p.manager,ME.name);
+    return `<tr class="${p._flash?'row-flash':''} ${mine?'mine':''}">
+      <td data-label="Dự án"><b>${esc(p.name)}</b>${mine?' <span class="badge approved">của tôi</span>':''}
+        ${p._flash?' <span class="badge released">MỚI</span>':''}
+        ${(p.feedback||[]).some(f=>!f.resolved)?' <span class="badge crit">cần sửa</span>':''}
+        <div class="detail-row">${esc(p.customer||'')}</div></td>
+      <td data-label="PIC">${esc(p.manager||'—')}</td>
+      <td data-label="Gate"><span class="badge gate${g.n}">G${g.n}</span><div class="detail-row">${esc(g.nvRole)}</div></td>
+      <td data-label="Trạng thái"><span class="badge ${GATE_STATUS_BADGE[gs]}">${esc(GATE_STATUS_LABEL[gs])}</span>
+        ${p.updatedBy?`<div class="detail-row">${esc(p.updatedBy)} · ${p.updatedAt?new Date(p.updatedAt).toLocaleDateString('vi-VN'):''}</div>`:''}</td>
+      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:${pr.pct}%"></div></div>
+        <div class="detail-row">${pr.released}/${pr.total}</div></td>
+      <td data-label="Deadline">${esc(p.deadline||'—')}${late?` <span class="badge crit">Trễ ${Math.abs(dd)}d</span>`:(dd!==null&&dd>=0&&dd<=3&&gs!=="hoan_thanh"?` <span class="badge check">Còn ${dd}d</span>`:'')}</td>
+      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject('${p.id}')">Mở</button></td>
+    </tr>`;
+  }).join("")}</tbody></table>`;
+}
+function viewProjects(){
+  const term=(searchTerms.proj||"").toLowerCase();
+  const filt=(searchTerms.projFilter||"all");
+  let list=PROJECTS.filter(p=>!term||String(p.name).toLowerCase().includes(term)||String(p.customer||"").toLowerCase().includes(term)||String(p.manager||"").toLowerCase().includes(term));
+  if(filt==="mine") list=list.filter(p=>sameName(p.manager,ME.name));
+  else if(filt==="wait") list=list.filter(p=>p.gateStatus==="cho_duyet");
+  else if(filt==="active") list=list.filter(p=>p.gateStatus!=="hoan_thanh");
+  else if(filt==="done") list=list.filter(p=>p.gateStatus==="hoan_thanh");
+  return `<div class="card">
+    <h2>Dự án toàn phòng <span class="sub">${PROJECTS.length} dự án · Anh/chị xem được tất cả, chỉ sửa được dự án của mình</span></h2>
+    <div class="toolbar">
+      <input type="text" placeholder="Tìm dự án / khách hàng / PIC..." value="${esc(searchTerms.proj||'')}" oninput="searchTerms.proj=this.value;render();">
+      <select onchange="searchTerms.projFilter=this.value;render();">
+        <option value="all" ${filt==='all'?'selected':''}>Tất cả</option>
+        <option value="mine" ${filt==='mine'?'selected':''}>Dự án của tôi</option>
+        <option value="active" ${filt==='active'?'selected':''}>Đang chạy</option>
+        <option value="wait" ${filt==='wait'?'selected':''}>Chờ duyệt</option>
+        <option value="done" ${filt==='done'?'selected':''}>Đã hoàn thành</option>
+      </select>
+      <div class="spacer"></div>
+      ${isLeader()?`<button class="btn primary" onclick="editProject()">+ Thêm dự án</button>`:''}
+    </div>
+    ${list.length?tableProjects(list):`<div class="empty-state"><div class="icon">📁</div>Không có dự án nào khớp.</div>`}
+  </div>`;
+}
+function viewMyWork(){
+  const mine=PROJECTS.filter(p=>sameName(p.manager,ME.name));
+  const inStaff=(META.staff||[]).some(s=>sameName(s.name,ME.name));
+  const warnName=(!mine.length&&PROJECTS.length&&!inStaff)?`<div class="notice danger">
+    <b>⚠ Tên tài khoản chưa khớp danh sách nhân viên</b><br>
+    Tài khoản của anh/chị hiển thị là <b>"${esc(ME.name)}"</b> nhưng không tìm thấy tên này trong danh sách Nhân viên,
+    nên hệ thống chưa nhận ra dự án nào là của anh/chị.<br>
+    Vui lòng báo Trưởng phòng sửa lại <b>Tên hiển thị</b> của tài khoản cho trùng với tên trong mục Nhân viên và tên PIC của dự án.</div>`:'';
+  const needFix=mine.filter(p=>(p.feedback||[]).some(f=>!f.resolved&&String(f.gate)===String(p.gate)));
+  const tasks=[];
+  mine.forEach(p=>(p.tasks||[]).forEach(t=>{if(sameName(t.person,ME.name)||!t.person)tasks.push({...t,proj:p.name,projId:p.id});}));
+  PROJECTS.forEach(p=>(p.tasks||[]).forEach(t=>{if(sameName(t.person,ME.name)&&!sameName(p.manager,ME.name))tasks.push({...t,proj:p.name,projId:p.id});}));
+  const open=tasks.filter(t=>t.status!=="Hoàn thành");
+  return `
+    ${warnName}
+    ${needFix.length?`<div class="card" style="border-left:5px solid var(--red);">
+      <h2>⚠ Trưởng phòng yêu cầu sửa lại</h2>
+      ${needFix.map(p=>`<div class="notice danger"><b>${esc(p.name)}</b>
+        ${(p.feedback||[]).filter(f=>!f.resolved&&String(f.gate)===String(p.gate)).map(f=>
+          `<div style="margin-top:6px;white-space:pre-wrap;">${esc(f.note)}</div><div class="detail-row" style="margin-top:3px;">${esc(f.gateName||'')} · ${esc(f.date||'')}</div>`).join("")}
+        <div style="margin-top:8px;"><button class="btn small danger" onclick="openProject('${p.id}')">Mở dự án để sửa</button></div>
+      </div>`).join("")}
+    </div>`:''}
+    <div class="grid-kpi">
+      <div class="kpi-box"><div class="num">${mine.length}</div><div class="lbl">Dự án tôi phụ trách</div></div>
+      <div class="kpi-box ${open.length?'mid':'ok'}"><div class="num">${open.length}</div><div class="lbl">Công việc đang mở</div></div>
+      <div class="kpi-box ${needFix.length?'warn':'ok'}"><div class="num">${needFix.length}</div><div class="lbl">Cần sửa lại</div></div>
+      <div class="kpi-box"><div class="num">${mine.filter(p=>p.gateStatus==="cho_duyet").length}</div><div class="lbl">Đã gửi, chờ duyệt</div></div>
+    </div>
+    <div class="card">
+      <h2>Dự án tôi phụ trách</h2>
+      ${mine.length?tableProjects(mine):`<div class="empty-state"><div class="icon">📋</div>Chưa được giao dự án nào.</div>`}
+    </div>
+    <div class="card">
+      <h2>Công việc được giao</h2>
+      ${tasks.length?`<table><thead><tr><th>Công việc</th><th>Dự án</th><th>Deadline</th><th>Trạng thái</th></tr></thead><tbody>
+        ${tasks.map(t=>{const dd=daysBetween(t.deadline);const late=t.status!=="Hoàn thành"&&dd!==null&&dd<0;
+        return `<tr><td data-label="Công việc">${esc(t.task||'')}</td><td data-label="Dự án">${esc(t.proj)}</td>
+        <td data-label="Deadline">${esc(t.deadline||'—')}${late?` <span class="badge crit">Trễ ${Math.abs(dd)}d</span>`:''}</td>
+        <td data-label="Trạng thái"><span class="badge ${t.status==='Hoàn thành'?'released':'check'}">${esc(t.status||'')}</span></td></tr>`;}).join("")}
+      </tbody></table>`:`<div class="empty-state">Chưa có công việc nào.</div>`}
+    </div>`;
+}
 </script>
 </body>
 </html>
