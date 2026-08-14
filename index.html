@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html lang="vi">
-<head>
-<meta charset="UTF-8">
+<!-- saved from url=(0042)file:///C:/Users/HP/Downloads/index_6.html -->
+<html lang="vi"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VNT · Quản lý Quy trình Kỹ thuật Điện</title>
 <meta name="theme-color" content="#0b1b2b">
@@ -208,13 +208,13 @@
     td::before{content:attr(data-label);font-weight:800;color:var(--text-light);font-size:10.5px;text-transform:uppercase;}
   }
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="./index_files/jszip.min.js.download"></script>
+<script src="./index_files/xlsx.full.min.js.download"></script>
 </head>
 <body>
 
 <!-- ============ MAN HINH DANG NHAP ============ -->
-<div id="loginScreen">
+<div id="loginScreen" style="display: none;">
   <div class="login-box">
     <div class="login-logo">⚡</div>
     <h1>Quản lý Quy trình Kỹ thuật</h1>
@@ -240,40 +240,350 @@
       <button class="btn primary wide" id="lgBtn" onclick="doLogin()">Đăng nhập</button>
       <div class="login-hint">
         Chưa có tài khoản? Liên hệ Trưởng phòng để được cấp.<br>
-        <a href="#" onclick="showSetup();return false;" style="color:var(--accent);">Đổi địa chỉ máy chủ</a>
+        <a href="file:///C:/Users/HP/Downloads/index_6.html#" onclick="showSetup();return false;" style="color:var(--accent);">Đổi địa chỉ máy chủ</a>
       </div>
     </div>
   </div>
 </div>
 
 <!-- ============ APP ============ -->
-<div id="app">
+<div id="app" style="display: block;">
   <header>
     <div>
       <h1>Quản lý Quy trình Kỹ thuật Điện – Điện tử</h1>
-      <div class="sub" id="hdrSub">VNT Việt Nam</div>
+      <div class="sub" id="hdrSub">VNT Việt Nam · Trưởng phòng</div>
     </div>
     <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;">
-      <span class="sync-pill" id="syncPill" onclick="toggleAuto()"><span class="led"></span>Tự động</span>
+      <span class="sync-pill" id="syncPill" onclick="toggleAuto()"><span class="led"></span>Thủ công · 08:20</span>
       <button class="btn" onclick="refreshAll(true)">Làm mới</button>
       <div class="userchip">
         <div>
-          <div class="nm" id="uName">—</div>
-          <div class="rl" id="uRole">—</div>
+          <div class="nm" id="uName">Truong phong</div>
+          <div class="rl" id="uRole">Trưởng phòng</div>
         </div>
-        <div class="avatar" id="uAvt">?</div>
+        <div class="avatar" id="uAvt">T</div>
       </div>
       <button class="btn" onclick="logout()">Thoát</button>
     </div>
   </header>
-  <nav class="tabs" id="tabNav"></nav>
-  <main id="mainArea"></main>
-  <footer id="appFooter"></footer>
+  <nav class="tabs" id="tabNav"><button class="" onclick="go(&#39;dashboard&#39;)">Tổng quan</button><button class="active" onclick="go(&#39;projects&#39;)">Dự án &amp; Hồ sơ</button><button class="" onclick="go(&#39;tasks&#39;)">Giao việc</button><button class="" onclick="go(&#39;mywork&#39;)">Việc của tôi</button><button class="" onclick="go(&#39;files&#39;)">Kho file</button><button class="" onclick="go(&#39;props&#39;)">Đề xuất</button><button class="" onclick="go(&#39;reports&#39;)">Báo cáo</button><button class="" onclick="go(&#39;staff&#39;)">Nhân viên</button><button class="" onclick="go(&#39;users&#39;)">Tài khoản</button><button class="" onclick="go(&#39;guide&#39;)">Hướng dẫn</button><button class="" onclick="go(&#39;settings&#39;)">⚙ Cài đặt</button><button class="" onclick="go(&#39;account&#39;)">Tài khoản của tôi</button></nav>
+  <main id="mainArea">
+    <div class="notice danger" style="font-size:13px;">
+      <b>⚠ MÁY CHỦ ĐANG CHẠY BẢN CŨ (v1) — cần cập nhật lên v3</b><br>
+      Giao diện đã là bản 3.3 nhưng code trên Apps Script chưa cập nhật, nên các chức năng mới
+      (Đề xuất, Việc ngoài dự án…) sẽ báo lỗi <i>"Lệnh không hợp lệ"</i>.
+      <div style="margin-top:8px;"><b>Cách sửa (2 phút):</b>
+        <ol style="margin:6px 0 0 18px;line-height:1.9;">
+          <li>Mở <b>script.google.com</b> → vào dự án backend của anh</li>
+          <li>Xoá hết code cũ, dán <b>toàn bộ</b> file <b>backend-v2.gs</b> mới → Lưu</li>
+          <li><b>Deploy → Manage deployments</b> → bấm biểu tượng ✏ (bút chì)</li>
+          <li>Ô <b>Version</b> chọn <b>New version</b> → bấm <b>Deploy</b></li>
+          <li>Quay lại app, bấm <b>Làm mới</b></li>
+        </ol>
+        <div style="margin-top:6px;">URL máy chủ giữ nguyên, không cần khai báo lại. Dữ liệu không bị ảnh hưởng.</div>
+      </div>
+    </div><div class="card">
+    <h2>Dự án toàn phòng <span class="sub">14 dự án · Xem theo khách hàng</span></h2>
+    
+    <div class="toolbar">
+      <input type="text" placeholder="Tìm dự án / khách hàng / PIC..." value="" oninput="searchTerms.proj=this.value;render();">
+      <select onchange="searchTerms.projMode=this.value;render();">
+        <option value="cus" selected="">🏢 Nhóm theo Khách hàng</option>
+        <option value="person">👤 Nhóm theo Nhân viên</option>
+        <option value="list">☰ Danh sách phẳng</option>
+      </select>
+      <select onchange="searchTerms.projFilter=this.value;render();">
+        <option value="all" selected="">Tất cả</option>
+        <option value="mine">Dự án của tôi</option>
+        <option value="active">Đang chạy</option>
+        <option value="wait">Chờ duyệt</option>
+        <option value="done">Đã hoàn thành</option>
+      </select>
+      <div class="spacer"></div>
+      <button class="btn small" onclick="foldAll(&#39;p1_&#39;,true)">Mở hết</button>
+        <button class="btn small" onclick="foldAll(&#39;p1_&#39;,false)">Thu hết</button>
+      <button class="btn primary" onclick="editProject()">+ Thêm dự án</button>
+    </div>
+    
+    <div class="fold">
+      <div class="fold-head  " id="fh_p1_CONDOR" onclick="toggleFold(&#39;p1_CONDOR&#39;)">
+        <span class="chev">▶</span>
+        <div>
+          <div class="fname">🏢 CONDOR</div>
+          <div class="fmeta">3 dự án · 2 hoàn thành · hồ sơ 0%</div>
+        </div>
+        <div class="fright">
+          
+          
+          <span class="fold-count">3</span>
+        </div>
+      </div>
+      <div class="fold-body " id="fb_p1_CONDOR">
+        <table><thead><tr><th>Dự án</th><th>PIC</th><th>Gate</th><th>Trạng thái</th><th>Hồ sơ</th><th>Deadline</th><th>Thao tác</th></tr></thead><tbody>
+  <tr class=" ">
+      <td data-label="Dự án"><b>BAKE OVEN</b>
+        
+        
+        <div class="detail-row">CONDOR</div></td>
+      <td data-label="PIC">PHÚ_E</td>
+      <td data-label="Gate"><span class="badge gate5">G5</span><div class="detail-row">Chuẩn bị hồ sơ</div></td>
+      <td data-label="Trạng thái"><span class="badge released">Đã hoàn thành (Released)</span>
+        <div class="detail-row">Truong phong · 13/8/2026</div></td>
+      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
+        <div class="detail-row">0/22</div></td>
+      <td data-label="Deadline">2026-08-20</td>
+      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject(&#39;p_msr5ax1c1upjm&#39;)">Mở</button></td>
+    </tr><tr class=" ">
+      <td data-label="Dự án"><b>PAINT BOOTH</b>
+        
+        
+        <div class="detail-row">CONDOR</div></td>
+      <td data-label="PIC">HÀO_E</td>
+      <td data-label="Gate"><span class="badge gate2">G2</span><div class="detail-row">Đề xuất + thiết kế sơ bộ</div></td>
+      <td data-label="Trạng thái"><span class="badge wip">Đang chờ NV làm</span>
+        <div class="detail-row">Truong phong · 13/8/2026</div></td>
+      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
+        <div class="detail-row">0/22</div></td>
+      <td data-label="Deadline">2026-08-20</td>
+      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject(&#39;p_msr7ikh8drz1q&#39;)">Mở</button></td>
+    </tr><tr class=" ">
+      <td data-label="Dự án"><b>PRETREATMENT</b>
+        
+        
+        <div class="detail-row">CONDOR</div></td>
+      <td data-label="PIC">HÀO_E</td>
+      <td data-label="Gate"><span class="badge gate5">G5</span><div class="detail-row">Chuẩn bị hồ sơ</div></td>
+      <td data-label="Trạng thái"><span class="badge released">Đã hoàn thành (Released)</span>
+        <div class="detail-row">Truong phong · 13/8/2026</div></td>
+      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
+        <div class="detail-row">0/22</div></td>
+      <td data-label="Deadline">2026-08-20</td>
+      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject(&#39;p_msqziu2x8bm31&#39;)">Mở</button></td>
+    </tr></tbody></table>
+      </div>
+    </div>
+    <div class="fold">
+      <div class="fold-head  " id="fh_p1_KAI_METAL" onclick="toggleFold(&#39;p1_KAI METAL&#39;)">
+        <span class="chev">▶</span>
+        <div>
+          <div class="fname">🏢 KAI METAL</div>
+          <div class="fmeta">4 dự án · 1 hoàn thành · hồ sơ 0%</div>
+        </div>
+        <div class="fright">
+          
+          
+          <span class="fold-count">4</span>
+        </div>
+      </div>
+      <div class="fold-body " id="fb_p1_KAI_METAL">
+        <table><thead><tr><th>Dự án</th><th>PIC</th><th>Gate</th><th>Trạng thái</th><th>Hồ sơ</th><th>Deadline</th><th>Thao tác</th></tr></thead><tbody>
+  <tr class=" ">
+      <td data-label="Dự án"><b>BAKE OVEN</b>
+        
+        
+        <div class="detail-row">KAI METAL</div></td>
+      <td data-label="PIC">HÀO_E</td>
+      <td data-label="Gate"><span class="badge gate2">G2</span><div class="detail-row">Đề xuất + thiết kế sơ bộ</div></td>
+      <td data-label="Trạng thái"><span class="badge wip">Đang chờ NV làm</span>
+        <div class="detail-row">Truong phong · 13/8/2026</div></td>
+      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
+        <div class="detail-row">0/22</div></td>
+      <td data-label="Deadline">2026-08-15 <span class="badge check">Còn 1d</span></td>
+      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject(&#39;p_msr78gy67ze70&#39;)">Mở</button></td>
+    </tr><tr class=" ">
+      <td data-label="Dự án"><b>BAKE OVEN CONV</b>
+        
+        
+        <div class="detail-row">KAI METAL</div></td>
+      <td data-label="PIC">HÀO_E</td>
+      <td data-label="Gate"><span class="badge gate2">G2</span><div class="detail-row">Đề xuất + thiết kế sơ bộ</div></td>
+      <td data-label="Trạng thái"><span class="badge wip">Đang chờ NV làm</span>
+        <div class="detail-row">Truong phong · 13/8/2026</div></td>
+      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
+        <div class="detail-row">0/22</div></td>
+      <td data-label="Deadline">2026-08-20</td>
+      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject(&#39;p_msr790andf6lq&#39;)">Mở</button></td>
+    </tr><tr class=" ">
+      <td data-label="Dự án"><b>PAINT BOOTH</b>
+        
+        
+        <div class="detail-row">KAI METAL</div></td>
+      <td data-label="PIC">ĐĂNG_E</td>
+      <td data-label="Gate"><span class="badge gate2">G2</span><div class="detail-row">Đề xuất + thiết kế sơ bộ</div></td>
+      <td data-label="Trạng thái"><span class="badge wip">Đang chờ NV làm</span>
+        <div class="detail-row">Truong phong · 13/8/2026</div></td>
+      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
+        <div class="detail-row">0/22</div></td>
+      <td data-label="Deadline">2026-08-20</td>
+      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject(&#39;p_msr7fnjxcrhsl&#39;)">Mở</button></td>
+    </tr><tr class=" ">
+      <td data-label="Dự án"><b>PRETREATMENT</b>
+        
+        
+        <div class="detail-row">KAI METAL</div></td>
+      <td data-label="PIC">PHÚ_E</td>
+      <td data-label="Gate"><span class="badge gate5">G5</span><div class="detail-row">Chuẩn bị hồ sơ</div></td>
+      <td data-label="Trạng thái"><span class="badge released">Đã hoàn thành (Released)</span>
+        <div class="detail-row">Truong phong · 13/8/2026</div></td>
+      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
+        <div class="detail-row">0/22</div></td>
+      <td data-label="Deadline">2026-08-14</td>
+      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject(&#39;p_msr77uu4e8qw2&#39;)">Mở</button></td>
+    </tr></tbody></table>
+      </div>
+    </div>
+    <div class="fold">
+      <div class="fold-head  " id="fh_p1_L_M_VI_N" onclick="toggleFold(&#39;p1_LÂM VIÊN&#39;)">
+        <span class="chev">▶</span>
+        <div>
+          <div class="fname">🏢 LÂM VIÊN</div>
+          <div class="fmeta">1 dự án · 1 hoàn thành · hồ sơ 0%</div>
+        </div>
+        <div class="fright">
+          
+          
+          <span class="fold-count">1</span>
+        </div>
+      </div>
+      <div class="fold-body " id="fb_p1_L_M_VI_N">
+        <table><thead><tr><th>Dự án</th><th>PIC</th><th>Gate</th><th>Trạng thái</th><th>Hồ sơ</th><th>Deadline</th><th>Thao tác</th></tr></thead><tbody>
+  <tr class=" ">
+      <td data-label="Dự án"><b>BAKE OVEN</b>
+        
+        
+        <div class="detail-row">LÂM VIÊN</div></td>
+      <td data-label="PIC">PHÚ_E</td>
+      <td data-label="Gate"><span class="badge gate5">G5</span><div class="detail-row">Chuẩn bị hồ sơ</div></td>
+      <td data-label="Trạng thái"><span class="badge released">Đã hoàn thành (Released)</span>
+        <div class="detail-row">Truong phong · 13/8/2026</div></td>
+      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
+        <div class="detail-row">0/22</div></td>
+      <td data-label="Deadline">2026-08-20</td>
+      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject(&#39;p_msr7hixcbv0qx&#39;)">Mở</button></td>
+    </tr></tbody></table>
+      </div>
+    </div>
+    <div class="fold">
+      <div class="fold-head  " id="fh_p1_NITORI" onclick="toggleFold(&#39;p1_NITORI&#39;)">
+        <span class="chev">▶</span>
+        <div>
+          <div class="fname">🏢 NITORI</div>
+          <div class="fmeta">1 dự án · 0 hoàn thành · hồ sơ 0%</div>
+        </div>
+        <div class="fright">
+          
+          
+          <span class="fold-count">1</span>
+        </div>
+      </div>
+      <div class="fold-body " id="fb_p1_NITORI">
+        <table><thead><tr><th>Dự án</th><th>PIC</th><th>Gate</th><th>Trạng thái</th><th>Hồ sơ</th><th>Deadline</th><th>Thao tác</th></tr></thead><tbody>
+  <tr class=" ">
+      <td data-label="Dự án"><b>PAINT BOOTH</b>
+        
+        
+        <div class="detail-row">NITORI</div></td>
+      <td data-label="PIC">PHÚ_E</td>
+      <td data-label="Gate"><span class="badge gate5">G5</span><div class="detail-row">Chuẩn bị hồ sơ</div></td>
+      <td data-label="Trạng thái"><span class="badge wip">Đang chờ NV làm</span>
+        <div class="detail-row">Truong phong · 13/8/2026</div></td>
+      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
+        <div class="detail-row">0/22</div></td>
+      <td data-label="Deadline">2026-08-20</td>
+      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject(&#39;p_msr7ewudigutp&#39;)">Mở</button></td>
+    </tr></tbody></table>
+      </div>
+    </div>
+    <div class="fold">
+      <div class="fold-head  " id="fh_p1_TSUKUBA" onclick="toggleFold(&#39;p1_TSUKUBA&#39;)">
+        <span class="chev">▶</span>
+        <div>
+          <div class="fname">🏢 TSUKUBA</div>
+          <div class="fmeta">5 dự án · 0 hoàn thành · hồ sơ 0%</div>
+        </div>
+        <div class="fright">
+          
+          
+          <span class="fold-count">5</span>
+        </div>
+      </div>
+      <div class="fold-body " id="fb_p1_TSUKUBA">
+        <table><thead><tr><th>Dự án</th><th>PIC</th><th>Gate</th><th>Trạng thái</th><th>Hồ sơ</th><th>Deadline</th><th>Thao tác</th></tr></thead><tbody>
+  <tr class=" ">
+      <td data-label="Dự án"><b>BAKE OVEN</b>
+        
+        
+        <div class="detail-row">TSUKUBA</div></td>
+      <td data-label="PIC">DUY_E</td>
+      <td data-label="Gate"><span class="badge gate2">G2</span><div class="detail-row">Đề xuất + thiết kế sơ bộ</div></td>
+      <td data-label="Trạng thái"><span class="badge wip">Đang chờ NV làm</span>
+        <div class="detail-row">Truong phong · 13/8/2026</div></td>
+      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
+        <div class="detail-row">0/22</div></td>
+      <td data-label="Deadline">2026-08-20</td>
+      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject(&#39;p_msr66vekap08q&#39;)">Mở</button></td>
+    </tr><tr class=" ">
+      <td data-label="Dự án"><b>CUT OUT</b>
+        
+        
+        <div class="detail-row">TSUKUBA</div></td>
+      <td data-label="PIC">DUY_E</td>
+      <td data-label="Gate"><span class="badge gate2">G2</span><div class="detail-row">Đề xuất + thiết kế sơ bộ</div></td>
+      <td data-label="Trạng thái"><span class="badge wip">Đang chờ NV làm</span>
+        <div class="detail-row">Truong phong · 13/8/2026</div></td>
+      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
+        <div class="detail-row">0/22</div></td>
+      <td data-label="Deadline">2026-08-20</td>
+      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject(&#39;p_msr69fm63w64r&#39;)">Mở</button></td>
+    </tr><tr class=" ">
+      <td data-label="Dự án"><b>ELECTRONIC CABINET</b>
+        
+        
+        <div class="detail-row">TSUKUBA</div></td>
+      <td data-label="PIC">DUY_E</td>
+      <td data-label="Gate"><span class="badge gate2">G2</span><div class="detail-row">Đề xuất + thiết kế sơ bộ</div></td>
+      <td data-label="Trạng thái"><span class="badge wip">Đang chờ NV làm</span>
+        <div class="detail-row">Truong phong · 13/8/2026</div></td>
+      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
+        <div class="detail-row">0/22</div></td>
+      <td data-label="Deadline">2026-08-20</td>
+      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject(&#39;p_msr69zq2h4nxn&#39;)">Mở</button></td>
+    </tr><tr class=" ">
+      <td data-label="Dự án"><b>POWDER COATING</b>
+        
+        
+        <div class="detail-row">TSUKUBA</div></td>
+      <td data-label="PIC">DUY_E</td>
+      <td data-label="Gate"><span class="badge gate2">G2</span><div class="detail-row">Đề xuất + thiết kế sơ bộ</div></td>
+      <td data-label="Trạng thái"><span class="badge wip">Đang chờ NV làm</span>
+        <div class="detail-row">Truong phong · 13/8/2026</div></td>
+      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
+        <div class="detail-row">0/22</div></td>
+      <td data-label="Deadline">2026-08-20</td>
+      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject(&#39;p_msr65zb0lud9i&#39;)">Mở</button></td>
+    </tr><tr class=" ">
+      <td data-label="Dự án"><b>PRETREATMENT</b>
+        
+        
+        <div class="detail-row">TSUKUBA</div></td>
+      <td data-label="PIC">DUY_E</td>
+      <td data-label="Gate"><span class="badge gate2">G2</span><div class="detail-row">Đề xuất + thiết kế sơ bộ</div></td>
+      <td data-label="Trạng thái"><span class="badge wip">Đang chờ NV làm</span>
+        <div class="detail-row">Truong phong · 13/8/2026</div></td>
+      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
+        <div class="detail-row">0/22</div></td>
+      <td data-label="Deadline">2026-08-20</td>
+      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject(&#39;p_msr658e2qhz8i&#39;)">Mở</button></td>
+    </tr></tbody></table>
+      </div>
+    </div>
+  </div></main>
+  <footer id="appFooter">Phiên bản 3.3 · Dữ liệu lưu tập trung trên máy chủ nội bộ</footer>
 </div>
 
 <div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this) closeModal();"><div class="modal" id="modalBody"></div></div>
 <div id="toastWrap"></div>
-<div id="busy"><div style="text-align:center;"><div class="spinner" style="margin:0 auto;"></div><div id="busyText">Đang xử lý…</div></div></div>
+<div id="busy" class=""><div style="text-align:center;"><div class="spinner" style="margin:0 auto;"></div><div id="busyText">Đang kết nối máy chủ…</div></div></div>
 
 <script>
 /* ============================================================
@@ -2479,5 +2789,6 @@ function viewMyWork(){
     </div>`;
 }
 </script>
-</body>
-</html>
+
+
+</body></html>
