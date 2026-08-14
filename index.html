@@ -144,6 +144,27 @@
   .doc-gate-head.g4{background:#f3ecff;color:#6841e0;border-left:4px solid var(--violet);}
   .doc-gate-head.g5{background:var(--green-bg);color:var(--green);border-left:4px solid var(--green);}
 
+  /* ===== FOLDER ===== */
+  .fold{border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:12px;background:#fff;}
+  .fold-head{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none;flex-wrap:wrap;
+    background:linear-gradient(120deg,var(--ink),var(--steel));color:#fff;transition:.15s;}
+  .fold-head:hover{filter:brightness(1.12);}
+  .fold-head.person{background:linear-gradient(120deg,#3a2d6b,#6841e0);}
+  .fold-head .chev{font-size:12px;transition:transform .2s;width:14px;flex-shrink:0;}
+  .fold-head.open .chev{transform:rotate(90deg);}
+  .fold-head .fname{font-size:14px;font-weight:800;}
+  .fold-head .fmeta{font-size:11.5px;opacity:.82;margin-top:1px;}
+  .fold-head .fright{margin-left:auto;display:flex;gap:7px;align-items:center;flex-wrap:wrap;}
+  .fold-body{display:none;}
+  .fold-body.open{display:block;}
+  .sub-head{display:flex;align-items:center;gap:9px;padding:9px 14px;cursor:pointer;user-select:none;
+    background:#f6f9fc;border-top:1px solid var(--border);flex-wrap:wrap;}
+  .sub-head:hover{background:#eef4fb;}
+  .sub-head .chev{font-size:11px;transition:transform .2s;width:12px;color:var(--text-light);}
+  .sub-head.open .chev{transform:rotate(90deg);}
+  .sub-body{display:none;} .sub-body.open{display:block;}
+  .fold-count{background:rgba(255,255,255,.2);border-radius:12px;padding:2px 9px;font-size:11px;font-weight:800;}
+
   /* ===== MODAL ===== */
   .modal-overlay{display:none;position:fixed;inset:0;background:rgba(11,27,43,.6);backdrop-filter:blur(3px);z-index:100;
     align-items:flex-start;justify-content:center;overflow-y:auto;padding:30px 12px;}
@@ -188,6 +209,7 @@
   }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -257,7 +279,9 @@
 /* ============================================================
    CAU HINH & TRANG THAI
    ============================================================ */
-const APP_VERSION = "3.0";
+const APP_VERSION = "3.3";
+const NEED_BACKEND = 3;   // Phien ban backend toi thieu
+let BACKEND_VER = null;
 const SRV_KEY = "vnt_app_server";
 const TOKEN_KEY = "vnt_app_token";
 const AUTO_KEY = "vnt_app_auto";
@@ -266,6 +290,11 @@ let ME = null;            // {code,name,role}
 let PROJECTS = [];        // toan bo du an
 let META = {staff:[], config:null};
 let GTASKS = [];   // cong viec khong thuoc du an
+let PROPS  = [];   // de xuat / y kien
+const DX_TYPES=["Mua thiết bị / vật tư","Sửa chữa / thay thế","Cải tiến (Kaizen)","Đào tạo / Học tập","Bổ sung nhân lực","Kiến nghị khác"];
+const DX_URG=["Bình thường","Cần sớm","Gấp"];
+const DX_STATUS=["Chờ duyệt","Đã duyệt","Cần bổ sung","Từ chối"];
+const DX_BADGE={"Chờ duyệt":"check","Đã duyệt":"released","Cần bổ sung":"open","Từ chối":"crit"};
 let activeTab = "dashboard";
 let searchTerms = {};
 let autoTimer = null;
@@ -374,6 +403,10 @@ async function api(action, payload, opts){
   if(!res.ok) throw new Error("Không kết nối được máy chủ (HTTP "+res.status+")");
   const data=await res.json();
   if(data && data.needLogin){ logout(true); throw new Error("Phiên đăng nhập hết hạn."); }
+  if(data && data.needBackendUpdate){
+    BACKEND_VER = BACKEND_VER===null? 1 : BACKEND_VER;
+    render();
+  }
   if(!data || !data.ok) throw new Error((data&&data.error)||"Lỗi không xác định");
   return data;
 }
@@ -449,7 +482,7 @@ async function refreshAll(showToast){
     const d=await api("getAll");
     PROJECTS=d.projects||[];
     META=d.meta||{staff:[],config:null};
-    GTASKS=d.generalTasks||[];
+    GTASKS=d.generalTasks||[]; PROPS=d.proposals||[]; BACKEND_VER=d.backendVersion||1;
     if(d.me) ME=d.me;
     lastSync=new Date();
     render();
@@ -471,7 +504,7 @@ async function silentRefresh(){
     const d=await api("getAll");
     const before={}; PROJECTS.forEach(p=>before[p.id]=p.updatedAt||"");
     const changed=(d.projects||[]).filter(p=>before[p.id]!==undefined && before[p.id]!==(p.updatedAt||""));
-    PROJECTS=d.projects||[]; META=d.meta||META; GTASKS=d.generalTasks||[]; lastSync=new Date();
+    PROJECTS=d.projects||[]; META=d.meta||META; GTASKS=d.generalTasks||[]; PROPS=d.proposals||[]; lastSync=new Date();
     changed.forEach(p=>p._flash=true);
     render();
     if(changed.length){
@@ -500,6 +533,7 @@ function tabsFor(){
   if(isLeader()) t.push({k:"tasks",l:"Giao việc"});
   t.push({k:"mywork",l:"Việc của tôi"});
   t.push({k:"files",l:"Kho file"});
+  t.push({k:"props",l:"Đề xuất"});
   if(isBoss()) t.push({k:"reports",l:"Báo cáo"});
   if(isBoss()) t.push({k:"staff",l:"Nhân viên"});
   if(isBoss()) t.push({k:"users",l:"Tài khoản"});
@@ -513,22 +547,46 @@ function render(){
   const tabs=tabsFor();
   if(!tabs.some(t=>t.k===activeTab)) activeTab=tabs[0].k;
   const alerts=isBoss()?countAlerts():0;
+  const pend=PROPS.filter(p=>p.status==="Chờ duyệt").length;
+  const myNeed=PROPS.filter(p=>p.status==="Cần bổ sung"&&sameName(p.createdBy,ME.name)).length;
   nav.innerHTML=tabs.map(t=>{
-    const dot=(t.k==="dashboard"&&alerts)?`<span class="dot">${alerts}</span>`:"";
+    let dot=(t.k==="dashboard"&&alerts)?`<span class="dot">${alerts}</span>`:"";
+    if(t.k==="props"){
+      const n=isBoss()?pend:myNeed;
+      if(n) dot=`<span class="dot">${n}</span>`;
+    }
     return `<button class="${t.k===activeTab?'active':''}" onclick="go('${t.k}')">${t.l}${dot}</button>`;
   }).join("");
   const m=document.getElementById("mainArea");
-  if(activeTab==="dashboard") m.innerHTML=viewDashboard();
-  else if(activeTab==="projects") m.innerHTML=viewProjects();
-  else if(activeTab==="tasks") m.innerHTML=viewTasks();
-  else if(activeTab==="mywork") m.innerHTML=viewMyWork();
-  else if(activeTab==="files") m.innerHTML=viewFiles();
-  else if(activeTab==="reports") m.innerHTML=viewReports();
-  else if(activeTab==="staff") m.innerHTML=viewStaff();
-  else if(activeTab==="users") m.innerHTML=viewUsers();
-  else if(activeTab==="guide") m.innerHTML=viewGuide();
-  else if(activeTab==="settings") m.innerHTML=viewSettings();
-  else if(activeTab==="account") m.innerHTML=viewAccount();
+  const warn=(BACKEND_VER!==null&&BACKEND_VER<NEED_BACKEND)?`
+    <div class="notice danger" style="font-size:13px;">
+      <b>⚠ MÁY CHỦ ĐANG CHẠY BẢN CŨ (v${BACKEND_VER}) — cần cập nhật lên v${NEED_BACKEND}</b><br>
+      Giao diện đã là bản ${APP_VERSION} nhưng code trên Apps Script chưa cập nhật, nên các chức năng mới
+      (Đề xuất, Việc ngoài dự án…) sẽ báo lỗi <i>"Lệnh không hợp lệ"</i>.
+      <div style="margin-top:8px;"><b>Cách sửa (2 phút):</b>
+        <ol style="margin:6px 0 0 18px;line-height:1.9;">
+          <li>Mở <b>script.google.com</b> → vào dự án backend của anh</li>
+          <li>Xoá hết code cũ, dán <b>toàn bộ</b> file <b>backend-v2.gs</b> mới → Lưu</li>
+          <li><b>Deploy → Manage deployments</b> → bấm biểu tượng ✏ (bút chì)</li>
+          <li>Ô <b>Version</b> chọn <b>New version</b> → bấm <b>Deploy</b></li>
+          <li>Quay lại app, bấm <b>Làm mới</b></li>
+        </ol>
+        <div style="margin-top:6px;">URL máy chủ giữ nguyên, không cần khai báo lại. Dữ liệu không bị ảnh hưởng.</div>
+      </div>
+    </div>`:'';
+  const oldInner=(s)=>warn+s;
+  if(activeTab==="dashboard") m.innerHTML=oldInner(viewDashboard());
+  else if(activeTab==="projects") m.innerHTML=oldInner(viewProjects());
+  else if(activeTab==="tasks") m.innerHTML=oldInner(viewTasks());
+  else if(activeTab==="mywork") m.innerHTML=oldInner(viewMyWork());
+  else if(activeTab==="files") m.innerHTML=oldInner(viewFiles());
+  else if(activeTab==="props") m.innerHTML=oldInner(viewProps());
+  else if(activeTab==="reports") m.innerHTML=oldInner(viewReports());
+  else if(activeTab==="staff") m.innerHTML=oldInner(viewStaff());
+  else if(activeTab==="users") m.innerHTML=oldInner(viewUsers());
+  else if(activeTab==="guide") m.innerHTML=oldInner(viewGuide());
+  else if(activeTab==="settings") m.innerHTML=oldInner(viewSettings());
+  else if(activeTab==="account") m.innerHTML=oldInner(viewAccount());
 }
 function go(k){activeTab=k;render();}
 
@@ -838,6 +896,21 @@ function exportTasksCsv(){
    KHO FILE
    ============================================================ */
 let fileSel={};
+let FOLD={};   // trang thai dong/mo cua tung thu muc
+function foldKey(k){return String(k).replace(/[^a-zA-Z0-9]/g,"_");}
+function isOpen(k,def){const v=FOLD[k];return v===undefined?(def!==false):v;}
+function toggleFold(k){
+  FOLD[k]=!isOpen(k);
+  const head=document.getElementById("fh_"+foldKey(k));
+  const body=document.getElementById("fb_"+foldKey(k));
+  if(head&&body){ head.classList.toggle("open",FOLD[k]); body.classList.toggle("open",FOLD[k]); }
+}
+function foldAll(prefix,open){
+  Object.keys(FOLD).forEach(k=>{if(k.startsWith(prefix))FOLD[k]=open;});
+  ALLKEYS.filter(k=>k.startsWith(prefix)).forEach(k=>{FOLD[k]=open;});
+  render();
+}
+let ALLKEYS=[];
 function allFiles(){
   const out=[];
   PROJECTS.forEach(p=>(p.docs||[]).forEach(d=>(d.files||[]).forEach(f=>{
@@ -871,12 +944,14 @@ function viewFiles(){
   const all=allFiles();
   const totalSize=all.reduce((n,f)=>n+(f.size||0),0);
   const customers=[...new Set(all.map(f=>f._customer))].sort();
-  /* Gom 2 cap: Khach hang -> Du an */
+  const mode=searchTerms.fileMode||"cus";   // cus | person
   const tree={};
   list.forEach(f=>{
-    (tree[f._customer]=tree[f._customer]||{})[f._proj]=(tree[f._customer][f._proj]||[]);
-    tree[f._customer][f._proj].push(f);
+    const L1 = mode==="person" ? (f._manager||"(Chưa giao)") : f._customer;
+    const L2 = mode==="person" ? `${f._customer} — ${f._proj}` : f._proj;
+    ((tree[L1]=tree[L1]||{})[L2]=tree[L1][L2]||[]).push(f);
   });
+  ALLKEYS=[];
   const sel=fileSelCount();
   return `
     <div class="grid-kpi">
@@ -887,72 +962,90 @@ function viewFiles(){
       <div class="kpi-box ${sel?'mid':''}"><div class="num">${sel}</div><div class="lbl">Đang chọn</div></div>
     </div>
     <div class="card">
-      <h2>Kho file hồ sơ <span class="sub">Lưu theo Khách hàng → Dự án → Hạng mục</span></h2>
-      <div class="notice info">File lưu trên máy chủ, sắp xếp theo <b>Khách hàng → Dự án</b>. Chọn file rồi tải về <b>1 file .zip đã chia sẵn thư mục</b> — bàn giao khách hàng hoặc lưu trữ đều gọn.</div>
+      <h2>Kho file hồ sơ <span class="sub">Bấm vào thư mục để mở / thu gọn</span></h2>
       <div class="toolbar">
         <input type="text" placeholder="Tìm file / khách hàng / dự án / hạng mục..." value="${esc(searchTerms.file||'')}" oninput="searchTerms.file=this.value;render();">
+        <select onchange="searchTerms.fileMode=this.value;render();">
+          <option value="cus" ${mode==='cus'?'selected':''}>📁 Nhóm theo Khách hàng</option>
+          <option value="person" ${mode==='person'?'selected':''}>👤 Nhóm theo Nhân viên</option>
+        </select>
         <select onchange="searchTerms.fileCus=this.value;render();">
           <option value="all">Tất cả khách hàng</option>
           ${customers.map(c=>`<option value="${esc(c)}" ${searchTerms.fileCus===c?'selected':''}>${esc(c)}</option>`).join("")}
-        </select>
-        <select onchange="searchTerms.fileProj=this.value;render();">
-          <option value="all">Tất cả dự án</option>
-          <option value="mine" ${searchTerms.fileProj==='mine'?'selected':''}>Dự án của tôi</option>
-          ${PROJECTS.map(p=>`<option value="${p.id}" ${searchTerms.fileProj===p.id?'selected':''}>${esc(p.name)}</option>`).join("")}
         </select>
         <select onchange="searchTerms.fileGate=this.value;render();">
           <option value="all">Tất cả Gate</option>
           ${GATES.map(g=>`<option value="${g.n}" ${String(searchTerms.fileGate)===String(g.n)?'selected':''}>G${g.n}</option>`).join("")}
         </select>
         <div class="spacer"></div>
-        <button class="btn small" onclick="selAllFiles(true)">Chọn tất cả</button>
+        <button class="btn small" onclick="foldAll('f1_',true)">Mở hết</button>
+        <button class="btn small" onclick="foldAll('f1_',false)">Thu hết</button>
         <button class="btn small" onclick="selAllFiles(false)">Bỏ chọn</button>
         <button class="btn primary" onclick="zipOptions()" ${sel?'':'disabled'}>⬇ Tải ${sel||''} file (.zip)</button>
       </div>
-      ${list.length? Object.keys(tree).sort().map(cus=>{
-        const projs=tree[cus];
+      ${list.length? Object.keys(tree).sort().map(L1=>{
+        const projs=tree[L1];
         const cFiles=Object.values(projs).flat();
         const cSize=cFiles.reduce((n,f)=>n+(f.size||0),0);
+        const k1="f1_"+L1; ALLKEYS.push(k1);
+        const op1=isOpen(k1, Object.keys(tree).length<=3);
+        const esc1=esc(L1).replace(/'/g,"\\'");
         return `
-        <div style="margin-top:16px;border:1px solid var(--border);border-radius:12px;overflow:hidden;">
-          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;
-            background:linear-gradient(120deg,var(--ink),var(--steel));color:#fff;padding:11px 14px;">
-            <div><b style="font-size:14px;">🏢 ${esc(cus)}</b>
-              <div style="font-size:11.5px;opacity:.8;">${Object.keys(projs).length} dự án · ${cFiles.length} file · ${fmtSize(cSize)}</div></div>
-            <div style="display:flex;gap:7px;">
-              <button class="btn small" onclick="selCustomer('${esc(cus).replace(/'/g,"\\'")}')">Chọn hết</button>
-              <button class="btn small" onclick="zipCustomer('${esc(cus).replace(/'/g,"\\'")}')">⬇ Tải cả khách hàng</button>
+        <div class="fold">
+          <div class="fold-head ${mode==='person'?'person':''} ${op1?'open':''}" id="fh_${foldKey(k1)}" onclick="toggleFold('${esc(k1).replace(/'/g,"\\'")}')">
+            <span class="chev">▶</span>
+            <div>
+              <div class="fname">${mode==='person'?'👤':'🏢'} ${esc(L1)}</div>
+              <div class="fmeta">${Object.keys(projs).length} dự án · ${cFiles.length} file · ${fmtSize(cSize)}</div>
+            </div>
+            <div class="fright" onclick="event.stopPropagation();">
+              <span class="fold-count">${cFiles.length}</span>
+              <button class="btn small" onclick="selGroup('${mode}','${esc1}')">Chọn hết</button>
+              <button class="btn small" onclick="zipGroup('${mode}','${esc1}')">⬇ Tải cả nhóm</button>
             </div>
           </div>
-          ${Object.keys(projs).sort().map(pn=>{
-            const files=projs[pn];
-            const size=files.reduce((n,f)=>n+(f.size||0),0);
-            const pid=files[0]._pid;
-            return `
-            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;
-              background:#f6f9fc;padding:8px 14px;border-top:1px solid var(--border);">
-              <div><b style="font-size:12.5px;">📁 ${esc(pn)}</b>
-                <span class="detail-row">${files.length} file · ${fmtSize(size)} · PIC: ${esc(files[0]._manager||'—')}</span></div>
-              <button class="btn small" onclick="zipOneProject('${pid}')">⬇ Tải dự án</button>
-            </div>
-            ${files.map(f=>`
-              <div style="display:flex;gap:9px;align-items:center;padding:9px 14px;border-top:1px solid var(--border);flex-wrap:wrap;">
-                <input type="checkbox" ${fileSel[f.id]?'checked':''} onchange="toggleFileSel('${f.id}',this.checked)" style="width:17px;height:17px;cursor:pointer;">
-                <div style="flex:1;min-width:180px;">
-                  <div style="font-size:13px;font-weight:600;">📎 ${esc(f.name)}</div>
-                  <div class="detail-row"><span class="badge gate${f._gate}">G${f._gate}</span> ${esc(f._doc)}
-                    · ${fmtSize(f.size)}${f.by?` · ${esc(f.by)}`:''}${f.uploadedAt?` · ${esc(f.uploadedAt)}`:''}</div>
+          <div class="fold-body ${op1?'open':''}" id="fb_${foldKey(k1)}">
+            ${Object.keys(projs).sort().map(L2=>{
+              const files=projs[L2];
+              const size=files.reduce((n,f)=>n+(f.size||0),0);
+              const pid=files[0]._pid;
+              const k2="f2_"+L1+"|"+L2; ALLKEYS.push(k2);
+              const op2=isOpen(k2, Object.keys(projs).length<=2);
+              return `
+              <div class="sub-head ${op2?'open':''}" id="fh_${foldKey(k2)}" onclick="toggleFold('${esc(k2).replace(/'/g,"\\'")}')">
+                <span class="chev">▶</span>
+                <div style="flex:1;min-width:150px;">
+                  <b style="font-size:12.5px;">📁 ${esc(L2)}</b>
+                  <div class="detail-row">${files.length} file · ${fmtSize(size)}${mode==='cus'?` · PIC: ${esc(files[0]._manager||'—')}`:''}</div>
                 </div>
-                <span class="badge ${String(f._docStatus||'wip').toLowerCase()}">${esc(f._docStatus||'')}</span>
-                <button class="btn small" onclick="dlFile('${f.id}','${esc(f.name)}')">Tải</button>
-                <button class="btn small" onclick="openProject('${f._pid}')">Mở dự án</button>
-                ${f._canEdit?`<button class="btn small danger" onclick="delFileFromLib('${f._pid}','${esc(f._doc)}','${f.id}')">Xoá</button>`:''}
-              </div>`).join("")}`;
-          }).join("")}
+                <button class="btn small" onclick="event.stopPropagation();zipOneProject('${pid}')">⬇ Tải dự án</button>
+              </div>
+              <div class="sub-body ${op2?'open':''}" id="fb_${foldKey(k2)}">
+                ${files.map(f=>`
+                  <div style="display:flex;gap:9px;align-items:center;padding:9px 14px 9px 30px;border-top:1px solid var(--border);flex-wrap:wrap;">
+                    <input type="checkbox" ${fileSel[f.id]?'checked':''} onchange="toggleFileSel('${f.id}',this.checked)" style="width:17px;height:17px;cursor:pointer;">
+                    <div style="flex:1;min-width:170px;">
+                      <div style="font-size:13px;font-weight:600;">📎 ${esc(f.name)}</div>
+                      <div class="detail-row"><span class="badge gate${f._gate}">G${f._gate}</span> ${esc(f._doc)}
+                        · ${fmtSize(f.size)}${f.by?` · ${esc(f.by)}`:''}${f.uploadedAt?` · ${esc(f.uploadedAt)}`:''}</div>
+                    </div>
+                    <span class="badge ${String(f._docStatus||'wip').toLowerCase()}">${esc(f._docStatus||'')}</span>
+                    <button class="btn small" onclick="dlFile('${f.id}','${esc(f.name)}')">Tải</button>
+                    <button class="btn small" onclick="openProject('${f._pid}')">Mở dự án</button>
+                    ${f._canEdit?`<button class="btn small danger" onclick="delFileFromLib('${f._pid}','${esc(f._doc)}','${f.id}')">Xoá</button>`:''}
+                  </div>`).join("")}
+              </div>`;
+            }).join("")}
+          </div>
         </div>`;
       }).join("") : `<div class="empty-state"><div class="icon">📂</div>${all.length?'Không có file nào khớp bộ lọc.':'Chưa có file nào được đưa lên.'}</div>`}
     </div>`;
 }
+function groupFiles(mode,name){
+  return allFiles().filter(f=> mode==="person" ? (f._manager||"(Chưa giao)")===name : f._customer===name);
+}
+function selGroup(mode,name){ groupFiles(mode,name).forEach(f=>fileSel[f.id]=true); render(); }
+function zipGroup(mode,name){ fileSel={}; groupFiles(mode,name).forEach(f=>fileSel[f.id]=true); zipOptions(); }
 function selCustomer(cus){
   allFiles().filter(f=>f._customer===cus).forEach(f=>fileSel[f.id]=true);
   render();
@@ -1175,6 +1268,391 @@ function exportStaffCsv(){
     {key:"position",label:"Chức danh"},{key:"phone",label:"Điện thoại"},{key:"email",label:"Email"},
     {key:"projs",label:"Số dự án"},{key:"pdone",label:"Dự án xong"},
     {key:"tasks",label:"Số việc"},{key:"tdone",label:"Việc xong"},{key:"tlate",label:"Việc trễ"}]));
+}
+
+/* ============================================================
+   DE XUAT / Y KIEN
+   ============================================================ */
+function propTotal(p){ return (p.items||[]).reduce((n,i)=>n+((Number(i.qty)||0)*(Number(i.price)||0)),0); }
+function fmtVnd(n){ return (Number(n)||0).toLocaleString('vi-VN')+" đ"; }
+function viewProps(){
+  const term=(searchTerms.prop||"").toLowerCase();
+  const fs=searchTerms.propStatus||(isBoss()?"Chờ duyệt":"all");
+  const fw=searchTerms.propWho||(isBoss()?"all":"mine");
+  let list=PROPS.slice();
+  if(fw==="mine") list=list.filter(p=>sameName(p.createdBy,ME.name));
+  if(fs!=="all") list=list.filter(p=>p.status===fs);
+  if(term) list=list.filter(p=>String(p.title||"").toLowerCase().includes(term)||
+    String(p.content||"").toLowerCase().includes(term)||String(p.createdBy||"").toLowerCase().includes(term));
+  list.sort((a,b)=>{
+    const r=x=>x.status==="Chờ duyệt"?0:(x.status==="Cần bổ sung"?1:2);
+    if(r(a)!==r(b)) return r(a)-r(b);
+    return String(b.createdAt||"").localeCompare(String(a.createdAt||""));
+  });
+  const pend=PROPS.filter(p=>p.status==="Chờ duyệt");
+  const mine=PROPS.filter(p=>sameName(p.createdBy,ME.name));
+  const needFix=mine.filter(p=>p.status==="Cần bổ sung");
+  const budget=pend.reduce((n,p)=>n+propTotal(p),0);
+
+  return `
+    ${needFix.length?`<div class="card" style="border-left:5px solid var(--amber);">
+      <h2>⚠ Đề xuất của bạn cần bổ sung thông tin</h2>
+      ${needFix.map(p=>`<div class="notice"><b>${esc(p.title)}</b>
+        ${p.decisionNote?`<div style="margin-top:5px;white-space:pre-wrap;">Trưởng phòng: ${esc(p.decisionNote)}</div>`:''}
+        <div style="margin-top:7px;"><button class="btn small" onclick="editProp('${p.id}')">Bổ sung &amp; gửi lại</button></div></div>`).join("")}
+    </div>`:''}
+    <div class="grid-kpi">
+      <div class="kpi-box ${pend.length?'mid':'ok'}"><div class="num">${pend.length}</div><div class="lbl">${isBoss()?'Chờ anh duyệt':'Đang chờ duyệt'}</div></div>
+      <div class="kpi-box ok"><div class="num">${PROPS.filter(p=>p.status==="Đã duyệt").length}</div><div class="lbl">Đã duyệt</div></div>
+      <div class="kpi-box"><div class="num">${mine.length}</div><div class="lbl">Của tôi</div></div>
+      ${isBoss()?`<div class="kpi-box mid"><div class="num" style="font-size:17px;">${fmtVnd(budget)}</div><div class="lbl">Giá trị đang chờ duyệt</div></div>`:''}
+      <div class="kpi-box"><div class="num">${PROPS.length}</div><div class="lbl">Tổng đề xuất</div></div>
+    </div>
+    <div class="card">
+      <h2>Đề xuất / Ý kiến <span class="sub">Mua thiết bị, vật tư, cải tiến, kiến nghị…</span></h2>
+      <div class="notice info">Mọi người đều gửi được đề xuất. Trưởng phòng xem, duyệt hoặc yêu cầu bổ sung — có lưu vết đầy đủ, không thất lạc như nhắn tin.</div>
+      <div class="toolbar">
+        <input type="text" placeholder="Tìm theo tiêu đề / nội dung / người đề xuất..." value="${esc(searchTerms.prop||'')}" oninput="searchTerms.prop=this.value;render();">
+        <select onchange="searchTerms.propStatus=this.value;render();">
+          <option value="all" ${fs==='all'?'selected':''}>Tất cả trạng thái</option>
+          ${DX_STATUS.map(s=>`<option value="${s}" ${fs===s?'selected':''}>${s}</option>`).join("")}
+        </select>
+        <select onchange="searchTerms.propWho=this.value;render();">
+          <option value="all" ${fw==='all'?'selected':''}>Của cả phòng</option>
+          <option value="mine" ${fw==='mine'?'selected':''}>Chỉ của tôi</option>
+        </select>
+        <div class="spacer"></div>
+        ${isBoss()?`<button class="btn success" onclick="exportPropsExcel(true)">📊 Excel (đã duyệt)</button>
+        <button class="btn" onclick="exportPropsExcel(false)">📊 Excel (tất cả)</button>`:''}
+        <button class="btn primary" onclick="editProp()">+ Gửi đề xuất</button>
+      </div>
+      ${list.length?`<table><thead><tr><th>Đề xuất</th><th>Loại</th><th>Người gửi</th><th>Giá trị</th><th>Mức độ</th><th>Trạng thái</th><th></th></tr></thead><tbody>
+        ${list.map(p=>{
+          const tot=propTotal(p);
+          return `<tr class="${sameName(p.createdBy,ME.name)?'mine':''}">
+            <td data-label="Đề xuất"><b>${esc(p.title)}</b>
+              ${p.project?`<div class="detail-row">Dự án: ${esc(p.project)}</div>`:''}
+              ${(p.items||[]).length?`<div class="detail-row">${p.items.length} hạng mục vật tư</div>`:''}</td>
+            <td data-label="Loại"><span class="badge approved">${esc(p.type||'Khác')}</span></td>
+            <td data-label="Người gửi">${esc(p.createdBy||'')}<div class="detail-row">${p.createdAt?new Date(p.createdAt).toLocaleDateString('vi-VN'):''}</div></td>
+            <td data-label="Giá trị">${tot?`<b>${fmtVnd(tot)}</b>`:'—'}</td>
+            <td data-label="Mức độ"><span class="badge ${p.urgency==='Gấp'?'crit':(p.urgency==='Cần sớm'?'check':'wip')}">${esc(p.urgency||'Bình thường')}</span></td>
+            <td data-label="Trạng thái"><span class="badge ${DX_BADGE[p.status]||'wip'}">${esc(p.status||'')}</span>
+              ${p.decidedBy?`<div class="detail-row">${esc(p.decidedBy)}</div>`:''}</td>
+            <td data-label=""><button class="btn small primary" onclick="viewProp('${p.id}')">Xem</button></td>
+          </tr>`;
+        }).join("")}
+      </tbody></table>`:`<div class="empty-state"><div class="icon">💡</div>Chưa có đề xuất nào${fs!=='all'?' ở trạng thái này':''}.</div>`}
+    </div>`;
+}
+function viewProp(id){
+  const p=PROPS.find(x=>x.id===id); if(!p) return;
+  const tot=propTotal(p);
+  const owner=sameName(p.createdBy,ME.name);
+  const canEditP=(isBoss())||(owner&&(p.status==="Chờ duyệt"||p.status==="Cần bổ sung"));
+  openModalHtml(`
+    <h3>${esc(p.title)} <span class="badge ${DX_BADGE[p.status]||'wip'}">${esc(p.status)}</span></h3>
+    <div class="detail-row" style="margin-bottom:12px;">
+      <span class="badge approved">${esc(p.type||'')}</span>
+      <span class="badge ${p.urgency==='Gấp'?'crit':(p.urgency==='Cần sớm'?'check':'wip')}">${esc(p.urgency||'')}</span>
+      · Người gửi: <b>${esc(p.createdBy)}</b> · ${p.createdAt?new Date(p.createdAt).toLocaleString('vi-VN'):''}
+      ${p.project?` · Dự án: <b>${esc(p.project)}</b>`:''}
+    </div>
+    ${p.content?`<div class="notice info"><b>Nội dung:</b><div style="margin-top:5px;white-space:pre-wrap;">${esc(p.content)}</div></div>`:''}
+    ${p.reason?`<div class="notice"><b>Lý do / Mục đích:</b><div style="margin-top:5px;white-space:pre-wrap;">${esc(p.reason)}</div></div>`:''}
+    ${(p.items||[]).length?`
+      <div class="flow-title" style="font-size:12px;font-weight:800;margin:14px 0 6px;">DANH SÁCH VẬT TƯ / THIẾT BỊ</div>
+      <table><thead><tr><th>Tên</th><th>Mã / Model</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th><th>Nhà cung cấp</th><th>Ghi chú</th></tr></thead><tbody>
+        ${p.items.map(i=>`<tr>
+          <td data-label="Tên"><b>${esc(i.name||'')}</b></td>
+          <td data-label="Mã">${esc(i.code||'—')}</td>
+          <td data-label="SL">${esc(i.qty||'')} ${esc(i.unit||'')}</td>
+          <td data-label="Đơn giá">${i.price?fmtVnd(i.price):'—'}</td>
+          <td data-label="Thành tiền"><b>${(Number(i.qty)||0)&&(Number(i.price)||0)?fmtVnd((Number(i.qty)||0)*(Number(i.price)||0)):'—'}</b></td>
+          <td data-label="NCC">${esc(i.supplier||'—')}</td>
+          <td data-label="Ghi chú">${esc(i.note||'—')}</td></tr>`).join("")}
+      </tbody></table>
+      <div style="text-align:right;margin-top:8px;font-size:14px;"><b>Tổng cộng: ${fmtVnd(tot)}</b></div>`:''}
+    ${p.expectedDate?`<div class="detail-row" style="margin-top:10px;">Mong muốn có trước: <b>${esc(p.expectedDate)}</b></div>`:''}
+    ${p.decisionNote?`<div class="notice ${p.status==='Đã duyệt'?'ok':(p.status==='Từ chối'?'danger':'')}" style="margin-top:12px;">
+      <b>Ý kiến Trưởng phòng${p.decidedBy?` (${esc(p.decidedBy)})`:''}:</b>
+      <div style="margin-top:5px;white-space:pre-wrap;">${esc(p.decisionNote)}</div>
+      ${p.decidedAt?`<div class="detail-row" style="margin-top:4px;">${new Date(p.decidedAt).toLocaleString('vi-VN')}</div>`:''}</div>`:''}
+    <div class="modal-actions" style="flex-wrap:wrap;">
+      <button class="btn" onclick="closeModal()">Đóng</button>
+      <button class="btn success" onclick="exportPropExcel('${p.id}')">📊 Xuất phiếu Excel</button>
+      ${canEditP?`<button class="btn" onclick="editProp('${p.id}')">Sửa</button>`:''}
+      ${(isBoss()||(owner&&p.status==="Chờ duyệt"))?`<button class="btn danger" onclick="delProp('${p.id}')">Xoá</button>`:''}
+      ${isBoss()&&p.status!=="Đã duyệt"?`<button class="btn" onclick="decideProp('${p.id}','Cần bổ sung')">↩ Yêu cầu bổ sung</button>
+        <button class="btn danger" onclick="decideProp('${p.id}','Từ chối')">✕ Từ chối</button>
+        <button class="btn success" onclick="decideProp('${p.id}','Đã duyệt')">✓ Duyệt</button>`:''}
+    </div>`);
+}
+let propDraft=null;
+function editProp(id){
+  propDraft = id ? JSON.parse(JSON.stringify(PROPS.find(x=>x.id===id))) : {
+    id:null,type:DX_TYPES[0],title:"",content:"",reason:"",project:"",urgency:"Bình thường",expectedDate:"",items:[]};
+  if(!propDraft.items) propDraft.items=[];
+  renderPropForm();
+}
+function renderPropForm(){
+  const d=propDraft;
+  const isBuy=d.type===DX_TYPES[0]||d.type===DX_TYPES[1];
+  openModalHtml(`
+    <h3>${d.id?'Sửa đề xuất':'Gửi đề xuất mới'}</h3>
+    <div class="form-row">
+      <div class="fld"><label>Loại đề xuất *</label>
+        <select id="dx_type" onchange="propDraft.type=this.value;syncPropForm();renderPropForm();">
+          ${DX_TYPES.map(t=>`<option ${d.type===t?'selected':''}>${t}</option>`).join("")}</select></div>
+      <div class="fld"><label>Mức độ</label>
+        <select id="dx_urg">${DX_URG.map(u=>`<option ${d.urgency===u?'selected':''}>${u}</option>`).join("")}</select></div>
+      <div class="fld full"><label>Tiêu đề *</label>
+        <input type="text" id="dx_title" value="${esc(d.title)}" placeholder="VD: Mua 5 contactor Mitsubishi S-T21 cho tủ line 3"></div>
+      <div class="fld"><label>Liên quan dự án (nếu có)</label>
+        <select id="dx_proj"><option value="">— Không thuộc dự án —</option>
+          ${PROJECTS.map(p=>`<option value="${esc(p.name)}" ${d.project===p.name?'selected':''}>${esc(p.customer?p.customer+' — ':'')}${esc(p.name)}</option>`).join("")}</select></div>
+      <div class="fld"><label>Mong muốn có trước ngày</label><input type="date" id="dx_date" value="${esc(d.expectedDate||'')}"></div>
+      <div class="fld full"><label>Nội dung đề xuất *</label>
+        <textarea id="dx_content" rows="3" placeholder="Mô tả cụ thể đề xuất của bạn...">${esc(d.content)}</textarea></div>
+      <div class="fld full"><label>Lý do / Mục đích</label>
+        <textarea id="dx_reason" rows="2" placeholder="VD: Contactor hiện tại đã chạy 6 năm, tiếp điểm rỗ, dừng máy 3 lần trong tháng">${esc(d.reason||'')}</textarea></div>
+    </div>
+    ${isBuy?`
+      <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:6px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <b style="font-size:13px;">Danh sách vật tư / thiết bị</b>
+          <button class="btn small primary" onclick="addPropItem()">+ Thêm dòng</button>
+        </div>
+        ${d.items.length?`<table><thead><tr><th>Tên *</th><th>Mã/Model</th><th>SL</th><th>ĐVT</th><th>Đơn giá</th><th>NCC</th><th>Ghi chú</th><th></th></tr></thead><tbody>
+          ${d.items.map((it,i)=>`<tr>
+            <td data-label="Tên"><input type="text" value="${esc(it.name||'')}" oninput="propDraft.items[${i}].name=this.value" style="width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:12.5px;"></td>
+            <td data-label="Mã"><input type="text" value="${esc(it.code||'')}" oninput="propDraft.items[${i}].code=this.value" style="width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:12.5px;"></td>
+            <td data-label="SL"><input type="number" value="${esc(it.qty||'')}" oninput="propDraft.items[${i}].qty=this.value;updPropTotal()" style="width:70px;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:12.5px;"></td>
+            <td data-label="ĐVT"><input type="text" value="${esc(it.unit||'')}" oninput="propDraft.items[${i}].unit=this.value" placeholder="cái" style="width:70px;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:12.5px;"></td>
+            <td data-label="Đơn giá"><input type="number" value="${esc(it.price||'')}" oninput="propDraft.items[${i}].price=this.value;updPropTotal()" style="width:110px;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:12.5px;"></td>
+            <td data-label="NCC"><input type="text" value="${esc(it.supplier||'')}" oninput="propDraft.items[${i}].supplier=this.value" style="width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:12.5px;"></td>
+            <td data-label="Ghi chú"><input type="text" value="${esc(it.note||'')}" oninput="propDraft.items[${i}].note=this.value" placeholder="ghi chú" style="width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:12.5px;"></td>
+            <td data-label=""><button class="btn small danger" onclick="rmPropItem(${i})">✕</button></td></tr>`).join("")}
+        </tbody></table>
+        <div style="text-align:right;margin-top:8px;font-size:14px;">Tổng dự toán: <b id="dxTotal">${fmtVnd(propTotal(d))}</b></div>`
+        :`<div class="detail-row">Chưa có dòng nào. Bấm "+ Thêm dòng" để liệt kê vật tư cần mua.</div>`}
+      </div>`:''}
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Huỷ</button>
+      <button class="btn primary" onclick="saveProp()">${d.id?'Lưu & gửi lại':'Gửi đề xuất'}</button></div>`);
+}
+function syncPropForm(){
+  const g=id=>document.getElementById(id);
+  if(g("dx_title")) propDraft.title=g("dx_title").value;
+  if(g("dx_content")) propDraft.content=g("dx_content").value;
+  if(g("dx_reason")) propDraft.reason=g("dx_reason").value;
+  if(g("dx_urg")) propDraft.urgency=g("dx_urg").value;
+  if(g("dx_proj")) propDraft.project=g("dx_proj").value;
+  if(g("dx_date")) propDraft.expectedDate=g("dx_date").value;
+}
+function addPropItem(){ syncPropForm(); propDraft.items.push({name:"",code:"",qty:1,unit:"cái",price:"",supplier:"",note:""}); renderPropForm(); }
+function rmPropItem(i){ syncPropForm(); propDraft.items.splice(i,1); renderPropForm(); }
+function updPropTotal(){ const el=document.getElementById("dxTotal"); if(el) el.textContent=fmtVnd(propTotal(propDraft)); }
+async function saveProp(){
+  syncPropForm();
+  if(!propDraft.title.trim()){alert("Vui lòng nhập tiêu đề đề xuất.");return;}
+  if(!propDraft.content.trim()){alert("Vui lòng nhập nội dung đề xuất.");return;}
+  propDraft.items=(propDraft.items||[]).filter(i=>String(i.name||"").trim());
+  try{
+    busy(true,"Đang gửi…");
+    const d=await api("saveProposal",{proposal:propDraft});
+    const i=PROPS.findIndex(x=>x.id===d.proposal.id);
+    if(i>=0) PROPS[i]=d.proposal; else PROPS.push(d.proposal);
+    closeModal(); render();
+    toast(propDraft.id?"Đã cập nhật đề xuất":"Đã gửi đề xuất","Trưởng phòng sẽ xem và phản hồi.","success");
+  }catch(e){ toast("Lỗi",esc(e.message),"err"); }
+  finally{ busy(false); }
+}
+async function decideProp(id,decision){
+  const p=PROPS.find(x=>x.id===id);
+  const msg=decision==="Đã duyệt"?`DUYỆT đề xuất "${p.title}"?\\n\\nNhập ý kiến/chỉ đạo (có thể để trống):`
+    :(decision==="Từ chối"?`TỪ CHỐI đề xuất "${p.title}"?\\n\\nNhập lý do từ chối:`
+    :`Yêu cầu ${p.createdBy} bổ sung thêm thông tin.\\n\\nNhập nội dung cần bổ sung:`);
+  const note=prompt(msg,"");
+  if(note===null) return;
+  if(decision!=="Đã duyệt"&&!note.trim()){alert("Vui lòng nhập lý do để người đề xuất biết.");return;}
+  try{
+    busy(true,"Đang xử lý…");
+    const d=await api("saveProposal",{proposal:{id},decide:decision,decisionNote:note.trim()});
+    const i=PROPS.findIndex(x=>x.id===id);
+    if(i>=0) PROPS[i]=d.proposal;
+    closeModal(); render();
+    toast("Đã "+decision.toLowerCase(),esc(p.title),decision==="Đã duyệt"?"success":"warn");
+  }catch(e){ toast("Lỗi",esc(e.message),"err"); }
+  finally{ busy(false); }
+}
+async function delProp(id){
+  if(!confirm("Xoá đề xuất này?")) return;
+  try{
+    busy(true,"Đang xoá…");
+    await api("deleteProposal",{id});
+    PROPS=PROPS.filter(x=>x.id!==id);
+    closeModal(); render(); toast("Đã xoá","","warn");
+  }catch(e){ toast("Lỗi",esc(e.message),"err"); }
+  finally{ busy(false); }
+}
+function exportPropsCsv(){
+  const rows=PROPS.map(p=>({title:p.title,type:p.type,by:p.createdBy,
+    date:p.createdAt?new Date(p.createdAt).toLocaleDateString('vi-VN'):"",
+    proj:p.project||"",urgency:p.urgency,items:(p.items||[]).length,total:propTotal(p),
+    status:p.status,decidedBy:p.decidedBy||"",note:p.decisionNote||""}));
+  dlText("de-xuat-"+todayStr()+".csv",csvText(rows,[
+    {key:"title",label:"Tiêu đề"},{key:"type",label:"Loại"},{key:"by",label:"Người đề xuất"},
+    {key:"date",label:"Ngày gửi"},{key:"proj",label:"Dự án"},{key:"urgency",label:"Mức độ"},
+    {key:"items",label:"Số hạng mục"},{key:"total",label:"Giá trị (đ)"},
+    {key:"status",label:"Trạng thái"},{key:"decidedBy",label:"Người duyệt"},{key:"note",label:"Ý kiến"}]));
+}
+
+/* ============================================================
+   XUAT EXCEL PHIEU DE NGHI MUA HANG
+   ============================================================ */
+function xlsxReady(){
+  if(typeof XLSX==="undefined"){
+    alert("Không tải được thư viện Excel (cần Internet). Vui lòng kiểm tra kết nối rồi thử lại.");
+    return false;
+  }
+  return true;
+}
+function dtStr(iso){
+  if(!iso) return "";
+  const d=new Date(iso);
+  if(isNaN(d)) return String(iso);
+  return d.toLocaleDateString('vi-VN')+" "+d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'});
+}
+function propCode(p){
+  const d=p.createdAt?new Date(p.createdAt):new Date();
+  const ym=d.getFullYear()+String(d.getMonth()+1).padStart(2,'0');
+  return "DX-"+ym+"-"+String(p.id||"").slice(-4).toUpperCase();
+}
+/* Phieu de nghi cho MOT de xuat */
+function exportPropExcel(id){
+  if(!xlsxReady()) return;
+  const p=PROPS.find(x=>x.id===id); if(!p) return;
+  const items=p.items||[];
+  const tot=propTotal(p);
+  const A=[];
+  A.push(["CÔNG TY TNHH MTV VNT VIỆT NAM"]);
+  A.push(["PHÒNG KỸ THUẬT ĐIỆN – ĐIỆN TỬ"]);
+  A.push([]);
+  A.push(["PHIẾU ĐỀ NGHỊ MUA HÀNG / ĐỀ XUẤT"]);
+  A.push(["Số phiếu:",propCode(p),"","","Ngày in:",dtStr(new Date().toISOString())]);
+  A.push([]);
+  A.push(["Loại đề xuất:",p.type||"","","","Mức độ:",p.urgency||""]);
+  A.push(["Tiêu đề:",p.title||""]);
+  A.push(["Dự án liên quan:",p.project||"(Không thuộc dự án)","","","Cần trước ngày:",p.expectedDate||""]);
+  A.push([]);
+  A.push(["NGƯỜI ĐỀ XUẤT","","","","NGƯỜI XÉT DUYỆT"]);
+  A.push(["Họ tên:",p.createdBy||"","","","Họ tên:",p.decidedBy||""]);
+  A.push(["Ngày giờ gửi:",dtStr(p.createdAt),"","","Ngày giờ duyệt:",dtStr(p.decidedAt)]);
+  A.push(["","","","","Kết quả:",p.status||""]);
+  A.push([]);
+  A.push(["NỘI DUNG ĐỀ XUẤT"]);
+  A.push([p.content||""]);
+  A.push([]);
+  A.push(["LÝ DO / MỤC ĐÍCH"]);
+  A.push([p.reason||""]);
+  A.push([]);
+  if(items.length){
+    A.push(["DANH SÁCH VẬT TƯ / THIẾT BỊ ĐỀ NGHỊ"]);
+    A.push(["STT","Tên sản phẩm","Mã SP / Model","ĐVT","Số lượng","Đơn giá (đ)","Thành tiền (đ)","Nhà cung cấp","Ghi chú"]);
+    items.forEach((it,i)=>{
+      const q=Number(it.qty)||0, pr=Number(it.price)||0;
+      A.push([i+1,it.name||"",it.code||"",it.unit||"",q,pr||"",q&&pr?q*pr:"",it.supplier||"",it.note||""]);
+    });
+    A.push(["","","","","","TỔNG CỘNG",tot||"","",""]);
+    A.push([]);
+  }
+  if(p.decisionNote){
+    A.push(["Ý KIẾN / CHỈ ĐẠO CỦA TRƯỞNG PHÒNG"]);
+    A.push([p.decisionNote]);
+    A.push([]);
+  }
+  A.push([]);
+  A.push(["Người đề xuất","","","","Trưởng phòng Kỹ thuật","","","Phòng Mua hàng"]);
+  A.push(["(Ký, ghi rõ họ tên)","","","","(Ký, ghi rõ họ tên)","","","(Ký, ghi rõ họ tên)"]);
+  A.push([]);A.push([]);A.push([]);
+  A.push([p.createdBy||"","","","",p.decidedBy||"","",""]);
+
+  const ws=XLSX.utils.aoa_to_sheet(A);
+  ws["!cols"]=[{wch:6},{wch:34},{wch:20},{wch:8},{wch:10},{wch:14},{wch:16},{wch:20},{wch:24}];
+  ws["!merges"]=[
+    {s:{r:0,c:0},e:{r:0,c:8}},{s:{r:1,c:0},e:{r:1,c:8}},
+    {s:{r:3,c:0},e:{r:3,c:8}},
+    {s:{r:7,c:1},e:{r:7,c:8}},
+    {s:{r:16,c:0},e:{r:16,c:8}},
+    {s:{r:19,c:0},e:{r:19,c:8}}
+  ];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,"Phieu de nghi");
+  const fname="PHIEU-DE-NGHI_"+propCode(p)+"_"+slugAscii(p.title||"")+".xlsx";
+  XLSX.writeFile(wb,fname);
+  toast("Đã xuất Excel",esc(fname),"success");
+}
+function slugAscii(s){
+  const M={"à":"a","á":"a","ạ":"a","ả":"a","ã":"a","â":"a","ầ":"a","ấ":"a","ậ":"a","ẩ":"a","ẫ":"a","ă":"a","ằ":"a","ắ":"a","ặ":"a","ẳ":"a","ẵ":"a","è":"e","é":"e","ẹ":"e","ẻ":"e","ẽ":"e","ê":"e","ề":"e","ế":"e","ệ":"e","ể":"e","ễ":"e","ì":"i","í":"i","ị":"i","ỉ":"i","ĩ":"i","ò":"o","ó":"o","ọ":"o","ỏ":"o","õ":"o","ô":"o","ồ":"o","ố":"o","ộ":"o","ổ":"o","ỗ":"o","ơ":"o","ờ":"o","ớ":"o","ợ":"o","ở":"o","ỡ":"o","ù":"u","ú":"u","ụ":"u","ủ":"u","ũ":"u","ư":"u","ừ":"u","ứ":"u","ự":"u","ử":"u","ữ":"u","ỳ":"y","ý":"y","ỵ":"y","ỷ":"y","ỹ":"y","đ":"d"};
+  let o="";for(const c of String(s||"").toLowerCase()){o+=M[c]||c;}
+  return o.split("").map(c=>((c>="a"&&c<="z")||(c>="0"&&c<="9"))?c:"-").join("").replace(/-+/g,"-").replace(/^-|-$/g,"").slice(0,40);
+}
+/* Xuat NHIEU de xuat: 1 sheet tong hop + 1 sheet chi tiet vat tu */
+function exportPropsExcel(onlyApproved){
+  if(!xlsxReady()) return;
+  let list=PROPS.slice();
+  if(onlyApproved) list=list.filter(p=>p.status==="Đã duyệt");
+  if(!list.length){ alert(onlyApproved?"Chưa có đề xuất nào được duyệt.":"Chưa có đề xuất nào."); return; }
+  list.sort((a,b)=>String(a.createdAt||"").localeCompare(String(b.createdAt||"")));
+
+  /* Sheet 1: tong hop */
+  const S1=[["DANH SÁCH ĐỀ XUẤT"+(onlyApproved?" ĐÃ DUYỆT":"")+" — PHÒNG KỸ THUẬT ĐIỆN & ĐIỆN TỬ"],
+    ["Ngày xuất:",dtStr(new Date().toISOString()),"","Tổng số:",list.length],[],
+    ["Số phiếu","Ngày giờ gửi","Người đề xuất","Loại đề xuất","Tiêu đề","Dự án","Mức độ",
+     "Số hạng mục","Tổng tiền (đ)","Trạng thái","Người xét duyệt","Ngày giờ duyệt","Ý kiến duyệt"]];
+  let grand=0;
+  list.forEach(p=>{
+    const t=propTotal(p); grand+=t;
+    S1.push([propCode(p),dtStr(p.createdAt),p.createdBy||"",p.type||"",p.title||"",
+      p.project||"",p.urgency||"",(p.items||[]).length,t||"",p.status||"",
+      p.decidedBy||"",dtStr(p.decidedAt),p.decisionNote||""]);
+  });
+  S1.push([]);
+  S1.push(["","","","","","","","TỔNG CỘNG",grand]);
+  const ws1=XLSX.utils.aoa_to_sheet(S1);
+  ws1["!cols"]=[{wch:18},{wch:18},{wch:18},{wch:22},{wch:38},{wch:20},{wch:12},
+    {wch:12},{wch:16},{wch:13},{wch:18},{wch:18},{wch:40}];
+  ws1["!merges"]=[{s:{r:0,c:0},e:{r:0,c:12}}];
+
+  /* Sheet 2: chi tiet tung dong vat tu */
+  const S2=[["CHI TIẾT VẬT TƯ / THIẾT BỊ"],[],
+    ["Số phiếu","Ngày gửi","Người đề xuất","Tiêu đề đề xuất","Dự án","STT",
+     "Tên sản phẩm","Mã SP / Model","ĐVT","Số lượng","Đơn giá (đ)","Thành tiền (đ)",
+     "Nhà cung cấp","Ghi chú","Trạng thái","Người xét duyệt","Ngày duyệt"]];
+  let gq=0,gt=0;
+  list.forEach(p=>{
+    (p.items||[]).forEach((it,i)=>{
+      const q=Number(it.qty)||0, pr=Number(it.price)||0;
+      gq+=q; gt+=q*pr;
+      S2.push([propCode(p),dtStr(p.createdAt),p.createdBy||"",p.title||"",p.project||"",i+1,
+        it.name||"",it.code||"",it.unit||"",q,pr||"",q&&pr?q*pr:"",
+        it.supplier||"",it.note||"",p.status||"",p.decidedBy||"",dtStr(p.decidedAt)]);
+    });
+  });
+  S2.push([]);
+  S2.push(["","","","","","","","","TỔNG",gq,"",gt]);
+  const ws2=XLSX.utils.aoa_to_sheet(S2);
+  ws2["!cols"]=[{wch:18},{wch:18},{wch:18},{wch:34},{wch:20},{wch:6},
+    {wch:34},{wch:20},{wch:8},{wch:10},{wch:14},{wch:16},{wch:20},{wch:24},{wch:13},{wch:18},{wch:18}];
+  ws2["!merges"]=[{s:{r:0,c:0},e:{r:0,c:16}}];
+
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws1,"Tong hop de xuat");
+  XLSX.utils.book_append_sheet(wb,ws2,"Chi tiet vat tu");
+  const fname=(onlyApproved?"DE-XUAT-DA-DUYET_":"DE-XUAT-TAT-CA_")+todayStr()+".xlsx";
+  XLSX.writeFile(wb,fname);
+  toast("Đã xuất Excel",`${list.length} đề xuất · ${esc(fname)}`,"success");
 }
 
 /* ============================================================
@@ -1453,6 +1931,7 @@ function renderProjectModal(){
       ${pend.map(f=>`<div style="margin-top:6px;white-space:pre-wrap;border-left:3px solid var(--red);padding-left:9px;">${esc(f.note)}<div class="detail-row">${esc(f.date||'')}</div></div>`).join("")}
       ${canEdit(p)?`<div style="margin-top:8px;">Sửa xong bấm <b>"Gửi Trưởng phòng duyệt"</b> ở cuối. Không giới hạn số lần gửi.</div>`:''}</div>`:''}
 
+    ${isBoss()&&gs==="hoan_thanh"?`<div class="notice ok"><b>Dự án đã RELEASED.</b> Nếu phát hiện sai sót cần sửa, bấm <b>"↩ Huỷ Release — Mở lại dự án"</b> ở cuối để mở lại và gửi yêu cầu cho ${esc(p.manager||'NV')}.</div>`:''}
     ${isBoss()&&gs==="cho_duyet"?`<div class="notice info"><b>Cần anh quyết định:</b> ${esc(p.updatedBy||p.manager)} đã gửi bài.
       ${Number(p.gate)===4?`Bấm <b>PASS</b> để sang G5, hoặc <b>REVISE</b> để trả về G3.`:`Bấm <b>Duyệt</b> để sang Gate tiếp, hoặc <b>Yêu cầu gửi lại</b> nếu chưa đạt.`}</div>`:''}
 
@@ -1502,6 +1981,9 @@ function renderProjectModal(){
         ? `<button class="btn danger" onclick="gateDecide('revise')">🔴 REVISE → G3</button><button class="btn success" onclick="gateDecide('pass')">🟢 PASS → G5</button>`
         : `<button class="btn danger" onclick="gateDecide('resubmit')">↩ Yêu cầu gửi lại</button><button class="btn success" onclick="gateDecide('approve')">✓ Duyệt → Gate tiếp</button>`):''}
       ${isBoss()&&Number(p.gate)===5&&gs!=="hoan_thanh"&&gs!=="cho_duyet"?`<button class="btn success" onclick="gateDecide('release')">🟢 Phê duyệt Release</button>`:''}
+      ${isBoss()&&gs==="cho_nv"?`<button class="btn danger" onclick="gateDecide('resubmit')">↩ Gửi yêu cầu sửa</button>`:''}
+      ${isBoss()&&gs==="hoan_thanh"?`<button class="btn danger" onclick="gateDecide('reopen')">↩ Huỷ Release — Mở lại dự án</button>`:''}
+      ${isBoss()&&gs!=="hoan_thanh"&&Number(p.gate)>1?`<button class="btn danger" onclick="gateDecide('undo')">⤺ Huỷ duyệt — lùi về G${Number(p.gate)-1}</button>`:''}
     </div>`);
 }
 function setDoc(i,v){ CUR.docs[i].status=v; }
@@ -1584,6 +2066,34 @@ async function gateDecide(kind){
   const p=CUR, gate=Number(p.gate)||1;
   try{
     busy(true,"Đang xử lý…");
+    /* ---- HUY RELEASE: mo lai du an da hoan thanh ---- */
+    if(kind==="reopen"){
+      const note=prompt(
+        `HUỶ RELEASE — ${p.name}\n\nDự án đang ở trạng thái ĐÃ HOÀN THÀNH.\n`+
+        `Nhập lý do mở lại và nội dung cần ${p.manager||'NV'} bổ sung/sửa:`,"");
+      if(note===null||!note.trim()){ busy(false); return; }
+      const fb={id:uid("fb"),date:todayStr(),at:new Date().toISOString(),gate:"5",
+        gateName:"G5 - Phê duyệt / Release",from:ME.name,to:p.manager||"",
+        note:"[HUỶ RELEASE] "+note.trim(),resolved:false};
+      const d=await api("setGate",{id:p.id,gate:"5",gateStatus:"cho_nv",feedback:fb,awaitingResubmit:true});
+      afterGate(d.project,"Đã huỷ Release — dự án mở lại ở G5");
+      return;
+    }
+    /* ---- HUY DUYET: lui ve Gate truoc ---- */
+    if(kind==="undo"){
+      const prev=gate-1;
+      const pg=GATES.find(x=>x.n===prev);
+      const note=prompt(
+        `HUỶ DUYỆT — ${p.name}\n\nDự án sẽ lùi từ G${gate} về ${pg.name}.\n`+
+        `Nhập lý do (sẽ hiển thị cho ${p.manager||'NV'}):`,"");
+      if(note===null||!note.trim()){ busy(false); return; }
+      const fb={id:uid("fb"),date:todayStr(),at:new Date().toISOString(),gate:String(prev),
+        gateName:pg.name,from:ME.name,to:p.manager||"",
+        note:`[HUỶ DUYỆT G${gate} → quay lại G${prev}] `+note.trim(),resolved:false};
+      const d=await api("setGate",{id:p.id,gate:String(prev),gateStatus:"cho_nv",feedback:fb,awaitingResubmit:true});
+      afterGate(d.project,`Đã huỷ duyệt — dự án quay về ${pg.name}`);
+      return;
+    }
     if(kind==="resubmit"||kind==="revise"){
       const note=prompt(kind==="revise"
         ? `REVISE — Design Review chưa đạt.\nNhập nhận xét để ${p.manager||'NV'} sửa (dự án sẽ quay về G3):`
@@ -1736,7 +2246,7 @@ async function start(){
   try{
     busy(true,"Đang kết nối máy chủ…");
     const d=await api("getAll");
-    ME=d.me; PROJECTS=d.projects||[]; META=d.meta||{staff:[],config:null}; GTASKS=d.generalTasks||[];
+    ME=d.me; PROJECTS=d.projects||[]; META=d.meta||{staff:[],config:null}; GTASKS=d.generalTasks||[]; PROPS=d.proposals||[]; BACKEND_VER=d.backendVersion||1;
     lastSync=new Date();
     document.getElementById("loginScreen").style.display="none";
     document.getElementById("app").style.display="block";
@@ -1845,15 +2355,21 @@ function tableProjects(list){
 function viewProjects(){
   const term=(searchTerms.proj||"").toLowerCase();
   const filt=(searchTerms.projFilter||"all");
+  const mode=searchTerms.projMode||"cus";   // list | cus | person
   let list=PROJECTS.filter(p=>!term||String(p.name).toLowerCase().includes(term)||String(p.customer||"").toLowerCase().includes(term)||String(p.manager||"").toLowerCase().includes(term));
   if(filt==="mine") list=list.filter(p=>sameName(p.manager,ME.name));
   else if(filt==="wait") list=list.filter(p=>p.gateStatus==="cho_duyet");
   else if(filt==="active") list=list.filter(p=>p.gateStatus!=="hoan_thanh");
   else if(filt==="done") list=list.filter(p=>p.gateStatus==="hoan_thanh");
-  return `<div class="card">
-    <h2>Dự án toàn phòng <span class="sub">${PROJECTS.length} dự án · Anh/chị xem được tất cả, chỉ sửa được dự án của mình</span></h2>
+
+  const head=`
     <div class="toolbar">
       <input type="text" placeholder="Tìm dự án / khách hàng / PIC..." value="${esc(searchTerms.proj||'')}" oninput="searchTerms.proj=this.value;render();">
+      <select onchange="searchTerms.projMode=this.value;render();">
+        <option value="cus" ${mode==='cus'?'selected':''}>🏢 Nhóm theo Khách hàng</option>
+        <option value="person" ${mode==='person'?'selected':''}>👤 Nhóm theo Nhân viên</option>
+        <option value="list" ${mode==='list'?'selected':''}>☰ Danh sách phẳng</option>
+      </select>
       <select onchange="searchTerms.projFilter=this.value;render();">
         <option value="all" ${filt==='all'?'selected':''}>Tất cả</option>
         <option value="mine" ${filt==='mine'?'selected':''}>Dự án của tôi</option>
@@ -1862,9 +2378,61 @@ function viewProjects(){
         <option value="done" ${filt==='done'?'selected':''}>Đã hoàn thành</option>
       </select>
       <div class="spacer"></div>
+      ${mode!=='list'?`<button class="btn small" onclick="foldAll('p1_',true)">Mở hết</button>
+        <button class="btn small" onclick="foldAll('p1_',false)">Thu hết</button>`:''}
       ${isLeader()?`<button class="btn primary" onclick="editProject()">+ Thêm dự án</button>`:''}
-    </div>
-    ${list.length?tableProjects(list):`<div class="empty-state"><div class="icon">📁</div>Không có dự án nào khớp.</div>`}
+    </div>`;
+
+  if(mode==="list"){
+    return `<div class="card">
+      <h2>Dự án toàn phòng <span class="sub">${PROJECTS.length} dự án · Xem được tất cả, chỉ sửa dự án của mình</span></h2>
+      ${head}
+      ${list.length?tableProjects(list):`<div class="empty-state"><div class="icon">📁</div>Không có dự án nào khớp.</div>`}
+    </div>`;
+  }
+
+  /* ---- Che do thu muc ---- */
+  const tree={};
+  list.forEach(p=>{
+    const L1 = mode==="person" ? (p.manager||"(Chưa giao)") : ((p.customer||"").trim()||"(Chưa có khách hàng)");
+    (tree[L1]=tree[L1]||[]).push(p);
+  });
+  ALLKEYS=[];
+  const body=Object.keys(tree).sort().map(L1=>{
+    const ps=tree[L1];
+    let rel=0,tot=0; ps.forEach(p=>{const x=docProgress(p);rel+=x.released;tot+=x.total;});
+    const done=ps.filter(p=>p.gateStatus==="hoan_thanh").length;
+    const wait=ps.filter(p=>p.gateStatus==="cho_duyet").length;
+    const late=ps.filter(p=>p.gateStatus!=="hoan_thanh"&&daysBetween(p.deadline)!==null&&daysBetween(p.deadline)<0).length;
+    const k="p1_"+L1; ALLKEYS.push(k);
+    const op=isOpen(k, Object.keys(tree).length<=4);
+    /* Nhom theo nguoi: liet ke ro tung khach hang ben trong */
+    const cusIn=[...new Set(ps.map(p=>(p.customer||"").trim()||"(Chưa có KH)"))];
+    return `
+    <div class="fold">
+      <div class="fold-head ${mode==='person'?'person':''} ${op?'open':''}" id="fh_${foldKey(k)}" onclick="toggleFold('${esc(k).replace(/'/g,"\\'")}')">
+        <span class="chev">▶</span>
+        <div>
+          <div class="fname">${mode==='person'?'👤':'🏢'} ${esc(L1)}</div>
+          <div class="fmeta">${ps.length} dự án · ${done} hoàn thành · hồ sơ ${tot?Math.round(rel/tot*100):0}%${
+            mode==='person'&&cusIn.length?` · KH: ${cusIn.map(esc).join(", ")}`:''}</div>
+        </div>
+        <div class="fright">
+          ${late?`<span class="badge crit">${late} trễ</span>`:''}
+          ${wait?`<span class="badge check">${wait} chờ duyệt</span>`:''}
+          <span class="fold-count">${ps.length}</span>
+        </div>
+      </div>
+      <div class="fold-body ${op?'open':''}" id="fb_${foldKey(k)}">
+        ${tableProjects(ps.slice().sort((a,b)=>String(a.name).localeCompare(String(b.name))))}
+      </div>
+    </div>`;
+  }).join("");
+
+  return `<div class="card">
+    <h2>Dự án toàn phòng <span class="sub">${PROJECTS.length} dự án · ${mode==='person'?'Xem theo người phụ trách':'Xem theo khách hàng'}</span></h2>
+    ${head}
+    ${list.length?body:`<div class="empty-state"><div class="icon">📁</div>Không có dự án nào khớp.</div>`}
   </div>`;
 }
 function viewMyWork(){
