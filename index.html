@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0043)file:///C:/Users/HP/Downloads/index_12.html -->
+<!-- saved from url=(0043)file:///C:/Users/HP/Downloads/index_13.html -->
 <html lang="vi"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -253,7 +253,7 @@
       <button class="btn primary wide" id="lgBtn" onclick="doLogin()">Đăng nhập</button>
       <div class="login-hint">
         Chưa có tài khoản? Liên hệ Trưởng phòng để được cấp.<br>
-        <a href="file:///C:/Users/HP/Downloads/index_12.html#" onclick="showSetup();return false;" style="color:var(--accent);">Đổi địa chỉ máy chủ</a>
+        <a href="file:///C:/Users/HP/Downloads/index_13.html#" onclick="showSetup();return false;" style="color:var(--accent);">Đổi địa chỉ máy chủ</a>
       </div>
     </div>
   </div>
@@ -286,13 +286,13 @@
 
 <div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this) closeModal();"><div class="modal" id="modalBody"></div></div>
 <div id="toastWrap"></div>
-<div id="busy" class=""><div style="text-align:center;"><div class="spinner" style="margin:0 auto;"></div><div id="busyText">Đang kết nối máy chủ…</div></div></div>
+<div id="busy"><div style="text-align:center;"><div class="spinner" style="margin:0 auto;"></div><div id="busyText">Đang xử lý…</div></div></div>
 
 <script>
 /* ============================================================
    CAU HINH & TRANG THAI
    ============================================================ */
-const APP_VERSION = "3.8";
+const APP_VERSION = "3.9";
 const NEED_BACKEND = 4;   // Phien ban backend toi thieu
 let BACKEND_VER = null;
 let BACKEND_FAIL = null;   // ten lenh bi may chu tu choi
@@ -2279,9 +2279,27 @@ function renderProjectModal(){
     </div>
     <div class="progress-wrap" style="margin-bottom:10px;"><div class="progress-bar" style="width:${pr.pct}%"></div></div>
 
+    ${editable?`<div style="display:flex;gap:8px;align-items:center;background:#f6f9fc;border:1px solid var(--border);
+      border-radius:9px;padding:8px 11px;margin-bottom:10px;flex-wrap:wrap;">
+      <span style="font-size:12.5px;font-weight:700;color:var(--text-light);">⚡ Đổi hàng loạt:</span>
+      <select id="bulkStatus" style="padding:6px 9px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;">
+        ${DOC_STATUS.map(s=>`<option ${s==='RELEASED'?'selected':''}>${s}</option>`).join("")}
+      </select>
+      <span style="font-size:12.5px;color:var(--text-light);">cho toàn bộ hồ sơ đang hiển thị</span>
+      <button class="btn small primary" onclick="bulkSetAllDocs()">Áp dụng tất cả</button>
+    </div>`:''}
+
     ${Object.keys(groups).sort((a,b)=>a-b).map(gg=>{
       const gi=GATES.find(x=>x.n===Number(gg));
-      return `<div class="doc-gate-head g${gg}"><span class="badge gate${gg}">G${gg}</span> ${esc(gi?gi.name:'Gate '+gg)}</div>
+      return `<div class="doc-gate-head g${gg}" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <span><span class="badge gate${gg}">G${gg}</span> ${esc(gi?gi.name:'Gate '+gg)}</span>
+        ${editable?`<span style="display:flex;gap:6px;align-items:center;">
+          <select id="bulkGate_${gg}" style="padding:4px 7px;border:1px solid var(--border);border-radius:7px;font-size:11.5px;" onclick="event.stopPropagation()">
+            ${DOC_STATUS.map(s=>`<option ${s==='RELEASED'?'selected':''}>${s}</option>`).join("")}
+          </select>
+          <button class="btn small" onclick="event.stopPropagation();bulkSetGateDocs(${gg})">Áp dụng cả nhóm</button>
+        </span>`:''}
+      </div>
       ${groups[gg].map(({d,i})=>`
         <div style="border-bottom:1px solid var(--border);padding:9px 0;">
           <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;">
@@ -2335,6 +2353,31 @@ function setDoc(i,v){
   DIRTY=true;
   renderProjectModal();            // ve lai de thanh tien do RELEASED cap nhat ngay
   scheduleSave();
+}
+/* Doi hang loat: 1 nhom Gate hoac toan bo ho so dang hien thi, cap nhat 1 lan, luu 1 lan */
+function bulkSetGateDocs(gateNum){
+  const sel=document.getElementById("bulkGate_"+gateNum);
+  const status=sel?sel.value:"RELEASED";
+  const curGate=Number(CUR.gate)||1;
+  let n=0;
+  CUR.docs.forEach(d=>{ if(docGate(d.name)===Number(gateNum) && docGate(d.name)<=curGate){ d.status=status; n++; } });
+  if(!n) return;
+  DIRTY=true;
+  renderProjectModal();
+  scheduleSave();
+  toast(`Đã đổi ${n} mục sang ${status}`,`Gate ${gateNum}`,"success");
+}
+function bulkSetAllDocs(){
+  const sel=document.getElementById("bulkStatus");
+  const status=sel?sel.value:"RELEASED";
+  const curGate=Number(CUR.gate)||1;
+  if(!confirm(`Đổi TOÀN BỘ hồ sơ đang hiển thị (thuộc Gate 1 đến G${curGate}) sang "${status}"?`)) return;
+  let n=0;
+  CUR.docs.forEach(d=>{ if(docGate(d.name)<=curGate){ d.status=status; n++; } });
+  DIRTY=true;
+  renderProjectModal();
+  scheduleSave();
+  toast(`Đã đổi ${n} mục sang ${status}`,"Toàn bộ hồ sơ đang hiển thị","success");
 }
 function scheduleSave(){
   if(saveTimer) clearTimeout(saveTimer);
