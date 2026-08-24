@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0042)file:///C:/Users/HP/Downloads/index_8.html -->
+<!-- saved from url=(0043)file:///C:/Users/HP/Downloads/index_11.html -->
 <html lang="vi"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -209,12 +209,25 @@
   }
 </style>
 <script src="./index_files/jszip.min.js.download"></script>
-<script src="./index_files/xlsx.full.min.js.download"></script>
+<script>
+/* Neu CDN chinh bi chan, tu dong thu cac nguon khac */
+(function(){
+  if(window.JSZip) return;
+  var srcs=["https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js",
+            "https://unpkg.com/jszip@3.10.1/dist/jszip.min.js"];
+  (function next(i){
+    if(i>=srcs.length||window.JSZip) return;
+    var s=document.createElement("script");
+    s.src=srcs[i]; s.onload=function(){}; s.onerror=function(){next(i+1);};
+    document.head.appendChild(s);
+  })(0);
+})();
+</script>
 </head>
 <body>
 
 <!-- ============ MAN HINH DANG NHAP ============ -->
-<div id="loginScreen">
+<div id="loginScreen" style="display: none;">
   <div class="login-box">
     <div class="login-logo">⚡</div>
     <h1>Quản lý Quy trình Kỹ thuật</h1>
@@ -240,35 +253,169 @@
       <button class="btn primary wide" id="lgBtn" onclick="doLogin()">Đăng nhập</button>
       <div class="login-hint">
         Chưa có tài khoản? Liên hệ Trưởng phòng để được cấp.<br>
-        <a href="file:///C:/Users/HP/Downloads/index_8.html#" onclick="showSetup();return false;" style="color:var(--accent);">Đổi địa chỉ máy chủ</a>
+        <a href="file:///C:/Users/HP/Downloads/index_11.html#" onclick="showSetup();return false;" style="color:var(--accent);">Đổi địa chỉ máy chủ</a>
       </div>
     </div>
   </div>
 </div>
 
 <!-- ============ APP ============ -->
-<div id="app">
+<div id="app" style="display: block;">
   <header>
     <div>
       <h1>Quản lý Quy trình Kỹ thuật Điện – Điện tử</h1>
-      <div class="sub" id="hdrSub">VNT Việt Nam</div>
+      <div class="sub" id="hdrSub">VNT Việt Nam · Trưởng phòng</div>
     </div>
     <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;">
-      <span class="sync-pill" id="syncPill" onclick="toggleAuto()"><span class="led"></span>Tự động</span>
+      <span class="sync-pill" id="syncPill" onclick="toggleAuto()"><span class="led"></span>Thủ công · 08:40</span>
       <button class="btn" onclick="refreshAll(true)">Làm mới</button>
       <div class="userchip">
         <div>
-          <div class="nm" id="uName">—</div>
-          <div class="rl" id="uRole">—</div>
+          <div class="nm" id="uName">KDUY_E</div>
+          <div class="rl" id="uRole">Trưởng phòng</div>
         </div>
-        <div class="avatar" id="uAvt">?</div>
+        <div class="avatar" id="uAvt">K</div>
       </div>
       <button class="btn" onclick="logout()">Thoát</button>
     </div>
   </header>
-  <nav class="tabs" id="tabNav"></nav>
-  <main id="mainArea"></main>
-  <footer id="appFooter"></footer>
+  <nav class="tabs" id="tabNav"><button class="active" onclick="go(&#39;dashboard&#39;)">Tổng quan<span class="dot">10</span></button><button class="" onclick="go(&#39;projects&#39;)">Dự án &amp; Hồ sơ</button><button class="" onclick="go(&#39;tasks&#39;)">Giao việc</button><button class="" onclick="go(&#39;mywork&#39;)">Việc của tôi</button><button class="" onclick="go(&#39;files&#39;)">Kho file</button><button class="" onclick="go(&#39;props&#39;)">Đề xuất</button><button class="" onclick="go(&#39;reports&#39;)">Báo cáo</button><button class="" onclick="go(&#39;staff&#39;)">Nhân viên</button><button class="" onclick="go(&#39;users&#39;)">Tài khoản</button><button class="" onclick="go(&#39;guide&#39;)">Hướng dẫn</button><button class="" onclick="go(&#39;settings&#39;)">⚙ Cài đặt</button><button class="" onclick="go(&#39;account&#39;)">Tài khoản của tôi</button></nav>
+  <main id="mainArea">
+    <div class="card" style="border-left:5px solid var(--red);">
+      <h2>⚠ Cần xử lý ngay</h2>
+      <div class="notice danger"><b>10 dự án TRỄ HẠN:</b><br>• <b>BAKE OVEN</b> (HÀO_E) — trễ 2 ngày<br>• <b>BAKE OVEN</b> (ĐĂNG_E) — trễ 1 ngày<br>• <b>BAKE OVEN</b> (DUY_E) — trễ 2 ngày<br>• <b>BAKE OVEN CONV</b> (HÀO_E) — trễ 2 ngày<br>• <b>CUT OUT</b> (DUY_E) — trễ 2 ngày</div>
+      
+      
+    </div>
+    <div class="grid-kpi">
+      <div class="kpi-box"><div class="num">15</div><div class="lbl">Tổng dự án</div></div>
+      <div class="kpi-box mid"><div class="num">1%</div><div class="lbl">Hồ sơ RELEASED (2/330)</div></div>
+      <div class="kpi-box ok"><div class="num">0</div><div class="lbl">Chờ anh duyệt</div></div>
+      <div class="kpi-box warn"><div class="num">10</div><div class="lbl">Dự án trễ hạn</div></div>
+      <div class="kpi-box ok"><div class="num">5</div><div class="lbl">Đã Release</div></div>
+      <div class="kpi-box"><div class="num">9</div><div class="lbl">Nhân sự</div></div>
+    </div>
+    <div class="card">
+      <h2>Phân bố dự án theo Gate</h2>
+      <div class="gate-track">
+        <div class="gate-node g1 ">
+          <span class="gn">0</span>Tiếp nhận yêu cầu</div><div class="gate-node g2 ">
+          <span class="gn">0</span>Thiết kế sơ bộ</div><div class="gate-node g3 current">
+          <span class="gn">7</span>Thiết kế chi tiết</div><div class="gate-node g4 current">
+          <span class="gn">2</span>Design Review</div><div class="gate-node g5 current">
+          <span class="gn">6</span>Phê duyệt / Release</div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Dự án cần xử lý <span class="sub">Sắp xếp theo mức ưu tiên</span></h2>
+      <table><thead><tr><th>Dự án</th><th>PIC</th><th>Gate</th><th>Trạng thái</th><th>Hồ sơ</th><th>Deadline</th><th>Thao tác</th></tr></thead><tbody>
+  <tr class=" ">
+      <td data-label="Dự án"><b>BAKE OVEN</b>
+        
+        
+        <div class="detail-row">KAI METAL</div></td>
+      <td data-label="PIC">HÀO_E</td>
+      <td data-label="Gate"><span class="badge gate5">G5</span><div class="detail-row">Chuẩn bị hồ sơ</div></td>
+      <td data-label="Trạng thái"><span class="badge wip">Đang chờ NV làm</span>
+        <div class="detail-row">Truong phong · 24/8/2026</div></td>
+      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
+        <div class="detail-row">0/22</div></td>
+      <td data-label="Deadline">2026-08-22 <span class="badge crit">Trễ 2d</span></td>
+      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject(&#39;p_msr78gy67ze70&#39;)">Mở</button></td>
+    </tr><tr class=" ">
+      <td data-label="Dự án"><b>BAKE OVEN</b>
+        
+        
+        <div class="detail-row">LÂM VIÊN</div></td>
+      <td data-label="PIC">ĐĂNG_E</td>
+      <td data-label="Gate"><span class="badge gate3">G3</span><div class="detail-row">Thiết kế chi tiết</div></td>
+      <td data-label="Trạng thái"><span class="badge wip">Đang chờ NV làm</span>
+        <div class="detail-row">KDUY_E · 22/8/2026</div></td>
+      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
+        <div class="detail-row">0/22</div></td>
+      <td data-label="Deadline">2026-08-23 <span class="badge crit">Trễ 1d</span></td>
+      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject(&#39;p_mt2b15e1103kz&#39;)">Mở</button></td>
+    </tr><tr class=" ">
+      <td data-label="Dự án"><b>BAKE OVEN</b>
+        
+        
+        <div class="detail-row">TSUKUBA</div></td>
+      <td data-label="PIC">DUY_E</td>
+      <td data-label="Gate"><span class="badge gate3">G3</span><div class="detail-row">Thiết kế chi tiết</div></td>
+      <td data-label="Trạng thái"><span class="badge wip">Đang chờ NV làm</span>
+        <div class="detail-row">KDUY_E · 21/8/2026</div></td>
+      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
+        <div class="detail-row">0/22</div></td>
+      <td data-label="Deadline">2026-08-22 <span class="badge crit">Trễ 2d</span></td>
+      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject(&#39;p_msr66vekap08q&#39;)">Mở</button></td>
+    </tr><tr class=" ">
+      <td data-label="Dự án"><b>BAKE OVEN CONV</b>
+        
+        
+        <div class="detail-row">KAI METAL</div></td>
+      <td data-label="PIC">HÀO_E</td>
+      <td data-label="Gate"><span class="badge gate4">G4</span><div class="detail-row">Trình bày + sửa</div></td>
+      <td data-label="Trạng thái"><span class="badge wip">Đang chờ NV làm</span>
+        <div class="detail-row">Truong phong · 24/8/2026</div></td>
+      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
+        <div class="detail-row">0/22</div></td>
+      <td data-label="Deadline">2026-08-22 <span class="badge crit">Trễ 2d</span></td>
+      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject(&#39;p_msr790andf6lq&#39;)">Mở</button></td>
+    </tr><tr class=" ">
+      <td data-label="Dự án"><b>CUT OUT</b>
+        
+        
+        <div class="detail-row">TSUKUBA</div></td>
+      <td data-label="PIC">DUY_E</td>
+      <td data-label="Gate"><span class="badge gate3">G3</span><div class="detail-row">Thiết kế chi tiết</div></td>
+      <td data-label="Trạng thái"><span class="badge wip">Đang chờ NV làm</span>
+        <div class="detail-row">KDUY_E · 21/8/2026</div></td>
+      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
+        <div class="detail-row">0/22</div></td>
+      <td data-label="Deadline">2026-08-22 <span class="badge crit">Trễ 2d</span></td>
+      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject(&#39;p_msr69fm63w64r&#39;)">Mở</button></td>
+    </tr><tr class=" ">
+      <td data-label="Dự án"><b>ELECTRONIC CABINET</b>
+        
+        
+        <div class="detail-row">TSUKUBA</div></td>
+      <td data-label="PIC">DUY_E</td>
+      <td data-label="Gate"><span class="badge gate3">G3</span><div class="detail-row">Thiết kế chi tiết</div></td>
+      <td data-label="Trạng thái"><span class="badge wip">Đang chờ NV làm</span>
+        <div class="detail-row">KDUY_E · 21/8/2026</div></td>
+      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
+        <div class="detail-row">0/22</div></td>
+      <td data-label="Deadline">2026-08-22 <span class="badge crit">Trễ 2d</span></td>
+      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject(&#39;p_msr69zq2h4nxn&#39;)">Mở</button></td>
+    </tr><tr class=" ">
+      <td data-label="Dự án"><b>PAINT BOOTH</b>
+        
+        
+        <div class="detail-row">CONDOR</div></td>
+      <td data-label="PIC">HÀO_E</td>
+      <td data-label="Gate"><span class="badge gate4">G4</span><div class="detail-row">Trình bày + sửa</div></td>
+      <td data-label="Trạng thái"><span class="badge wip">Đang chờ NV làm</span>
+        <div class="detail-row">KDUY_E · 24/8/2026</div></td>
+      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:9%"></div></div>
+        <div class="detail-row">2/22</div></td>
+      <td data-label="Deadline">2026-08-22 <span class="badge crit">Trễ 2d</span></td>
+      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject(&#39;p_msr7ikh8drz1q&#39;)">Mở</button></td>
+    </tr><tr class=" ">
+      <td data-label="Dự án"><b>PAINT BOOTH</b>
+        
+        
+        <div class="detail-row">KAI METAL</div></td>
+      <td data-label="PIC">ĐĂNG_E</td>
+      <td data-label="Gate"><span class="badge gate3">G3</span><div class="detail-row">Thiết kế chi tiết</div></td>
+      <td data-label="Trạng thái"><span class="badge wip">Đang chờ NV làm</span>
+        <div class="detail-row">KDUY_E · 22/8/2026</div></td>
+      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
+        <div class="detail-row">0/22</div></td>
+      <td data-label="Deadline">2026-08-23 <span class="badge crit">Trễ 1d</span></td>
+      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject(&#39;p_mt29hdks9fohe&#39;)">Mở</button></td>
+    </tr></tbody></table>
+    </div></main>
+  <footer id="appFooter">Phiên bản 3.7 · Dữ liệu lưu tập trung trên máy chủ nội bộ</footer>
 </div>
 
 <div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this) closeModal();"><div class="modal" id="modalBody"></div></div>
@@ -279,8 +426,8 @@
 /* ============================================================
    CAU HINH & TRANG THAI
    ============================================================ */
-const APP_VERSION = "3.4";
-const NEED_BACKEND = 3;   // Phien ban backend toi thieu
+const APP_VERSION = "3.7";
+const NEED_BACKEND = 4;   // Phien ban backend toi thieu
 let BACKEND_VER = null;
 let BACKEND_FAIL = null;   // ten lenh bi may chu tu choi
 const SRV_KEY = "vnt_app_server";
@@ -294,8 +441,8 @@ let GTASKS = [];   // cong viec khong thuoc du an
 let PROPS  = [];   // de xuat / y kien
 const DX_TYPES=["Mua thiết bị / vật tư","Sửa chữa / thay thế","Cải tiến (Kaizen)","Đào tạo / Học tập","Bổ sung nhân lực","Kiến nghị khác"];
 const DX_URG=["Bình thường","Cần sớm","Gấp"];
-const DX_STATUS=["Chờ duyệt","Đã duyệt","Cần bổ sung","Từ chối"];
-const DX_BADGE={"Chờ duyệt":"check","Đã duyệt":"released","Cần bổ sung":"open","Từ chối":"crit"};
+const DX_STATUS=["Chờ duyệt","Đã duyệt","Đã mua","Cần bổ sung","Từ chối"];
+const DX_BADGE={"Chờ duyệt":"check","Đã duyệt":"approved","Đã mua":"released","Cần bổ sung":"open","Từ chối":"crit"};
 let activeTab = "dashboard";
 let searchTerms = {};
 let autoTimer = null;
@@ -588,7 +735,13 @@ function render(){
   else if(activeTab==="settings") m.innerHTML=oldInner(viewSettings());
   else if(activeTab==="account") m.innerHTML=oldInner(viewAccount());
 }
-function go(k){activeTab=k;render();}
+function go(k){
+  if(activeTab==="settings"&&k!=="settings"&&CFG_DIRTY){
+    if(!confirm("Cấu hình hạng mục có thay đổi chưa lưu.\n\nRời khỏi trang sẽ mất thay đổi. Tiếp tục?")) return;
+    CFG_DIRTY=false;
+  }
+  activeTab=k;render();
+}
 
 function countAlerts(){
   let n=0;
@@ -1282,10 +1435,14 @@ function viewProps(){
   let list=PROPS.slice();
   if(fw==="mine") list=list.filter(p=>sameName(p.createdBy,ME.name));
   if(fs!=="all") list=list.filter(p=>p.status===fs);
-  if(term) list=list.filter(p=>String(p.title||"").toLowerCase().includes(term)||
-    String(p.content||"").toLowerCase().includes(term)||String(p.createdBy||"").toLowerCase().includes(term));
+  if(term) list=list.filter(p=>{
+    const hay=[p.title,p.content,p.createdBy,p.project,p.type,
+      ...(p.items||[]).map(i=>i.name),...(p.items||[]).map(i=>i.code),
+      ...(p.items||[]).map(i=>i.supplier)].join(" ").toLowerCase();
+    return hay.includes(term);
+  });
   list.sort((a,b)=>{
-    const r=x=>x.status==="Chờ duyệt"?0:(x.status==="Cần bổ sung"?1:2);
+    const r=x=>x.status==="Chờ duyệt"?0:(x.status==="Cần bổ sung"?1:(x.status==="Đã duyệt"?2:3));
     if(r(a)!==r(b)) return r(a)-r(b);
     return String(b.createdAt||"").localeCompare(String(a.createdAt||""));
   });
@@ -1294,7 +1451,35 @@ function viewProps(){
   const needFix=mine.filter(p=>p.status==="Cần bổ sung");
   const budget=pend.reduce((n,p)=>n+propTotal(p),0);
 
+  /* Ket qua duyet gan day cua toi (7 ngay) */
+  const recent=mine.filter(p=>{
+    if(p.status!=="Đã duyệt"&&p.status!=="Từ chối"&&p.status!=="Đã mua") return false;
+    if(!p.decidedAt) return false;
+    return (Date.now()-new Date(p.decidedAt).getTime())<7*86400000;
+  });
+  /* Thong ke theo thang + theo loai (cho Truong phong) */
+  const byMonth={},byType={};
+  PROPS.forEach(p=>{
+    if(p.status==="Từ chối") return;
+    const m=(p.createdAt||"").slice(0,7);
+    const v=propTotal(p);
+    if(m){ byMonth[m]=(byMonth[m]||0)+v; }
+    byType[p.type||"Khác"]=(byType[p.type||"Khác"]||0)+v;
+  });
+  const months=Object.keys(byMonth).sort().slice(-6);
+  const maxM=Math.max(...months.map(m=>byMonth[m]),1);
+  const approvedTotal=PROPS.filter(p=>p.status==="Đã duyệt"||p.status==="Đã mua").reduce((n,p)=>n+propTotal(p),0);
+  const boughtTotal=PROPS.filter(p=>p.status==="Đã mua").reduce((n,p)=>n+(Number(p.actualCost)||propTotal(p)),0);
+
   return `
+    ${recent.length?`<div class="card" style="border-left:5px solid var(--green);">
+      <h2>📬 Kết quả đề xuất của bạn</h2>
+      ${recent.map(p=>`<div class="notice ${p.status==='Từ chối'?'danger':'ok'}">
+        <b>${esc(p.title)}</b> — <span class="badge ${DX_BADGE[p.status]}">${esc(p.status)}</span>
+        ${p.decisionNote?`<div style="margin-top:5px;white-space:pre-wrap;">${esc(p.decidedBy||'Trưởng phòng')}: ${esc(p.decisionNote)}</div>`:''}
+        <div style="margin-top:6px;"><button class="btn small" onclick="viewProp('${p.id}')">Xem chi tiết</button></div>
+      </div>`).join("")}
+    </div>`:''}
     ${needFix.length?`<div class="card" style="border-left:5px solid var(--amber);">
       <h2>⚠ Đề xuất của bạn cần bổ sung thông tin</h2>
       ${needFix.map(p=>`<div class="notice"><b>${esc(p.title)}</b>
@@ -1306,8 +1491,28 @@ function viewProps(){
       <div class="kpi-box ok"><div class="num">${PROPS.filter(p=>p.status==="Đã duyệt").length}</div><div class="lbl">Đã duyệt</div></div>
       <div class="kpi-box"><div class="num">${mine.length}</div><div class="lbl">Của tôi</div></div>
       ${isBoss()?`<div class="kpi-box mid"><div class="num" style="font-size:17px;">${fmtVnd(budget)}</div><div class="lbl">Giá trị đang chờ duyệt</div></div>`:''}
+      <div class="kpi-box ok"><div class="num">${PROPS.filter(p=>p.status==="Đã mua").length}</div><div class="lbl">Đã mua xong</div></div>
       <div class="kpi-box"><div class="num">${PROPS.length}</div><div class="lbl">Tổng đề xuất</div></div>
     </div>
+    ${isBoss()&&months.length?`<div class="card">
+      <h2>Chi phí đề xuất theo tháng <span class="sub">Không tính đề xuất bị từ chối</span></h2>
+      <div style="display:flex;gap:10px;align-items:flex-end;height:120px;margin-bottom:8px;">
+        ${months.map(m=>{
+          const v=byMonth[m], hpc=Math.max(4,Math.round(v/maxM*100));
+          return `<div style="flex:1;text-align:center;">
+            <div style="font-size:10.5px;font-weight:800;color:var(--ink);margin-bottom:4px;">${v?(v/1e6).toFixed(1)+'tr':'0'}</div>
+            <div style="background:linear-gradient(180deg,var(--accent2),var(--accent-dark));border-radius:6px 6px 0 0;height:${hpc}%;"></div>
+            <div style="font-size:10.5px;color:var(--text-light);margin-top:4px;">${esc(m.slice(5)+'/'+m.slice(2,4))}</div>
+          </div>`;
+        }).join("")}
+      </div>
+      <div class="metric-grid">
+        <div class="metric-cell"><div class="mv" style="font-size:15px;">${fmtVnd(approvedTotal)}</div><div class="ml">Tổng đã duyệt</div></div>
+        <div class="metric-cell"><div class="mv" style="font-size:15px;">${fmtVnd(boughtTotal)}</div><div class="ml">Đã mua thực tế</div></div>
+        ${Object.keys(byType).sort((a,b)=>byType[b]-byType[a]).slice(0,2).map(t=>
+          `<div class="metric-cell"><div class="mv" style="font-size:15px;">${fmtVnd(byType[t])}</div><div class="ml">${esc(t)}</div></div>`).join("")}
+      </div>
+    </div>`:''}
     <div class="card">
       <h2>Đề xuất / Ý kiến <span class="sub">Mua thiết bị, vật tư, cải tiến, kiến nghị…</span></h2>
       <div class="notice info">Mọi người đều gửi được đề xuất. Trưởng phòng xem, duyệt hoặc yêu cầu bổ sung — có lưu vết đầy đủ, không thất lạc như nhắn tin.</div>
@@ -1374,16 +1579,37 @@ function viewProp(id){
       </tbody></table>
       <div style="text-align:right;margin-top:8px;font-size:14px;"><b>Tổng cộng: ${fmtVnd(tot)}</b></div>`:''}
     ${p.expectedDate?`<div class="detail-row" style="margin-top:10px;">Mong muốn có trước: <b>${esc(p.expectedDate)}</b></div>`:''}
-    ${p.decisionNote?`<div class="notice ${p.status==='Đã duyệt'?'ok':(p.status==='Từ chối'?'danger':'')}" style="margin-top:12px;">
+    ${(p.files||[]).length?`
+      <div class="flow-title" style="font-size:12px;font-weight:800;margin:14px 0 6px;">BÁO GIÁ / TÀI LIỆU ĐÍNH KÈM</div>
+      ${(p.files||[]).map(f=>`<div style="display:flex;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);">
+        <span style="flex:1;font-size:12.5px;">📎 ${esc(f.name)} <span class="detail-row">(${fmtSize(f.size)}${f.by?' · '+esc(f.by):''})</span></span>
+        <button class="btn small" onclick="dlFile('${f.id}','${esc(f.name)}')">Tải</button>
+        ${(isBoss()||(owner&&(p.status==="Chờ duyệt"||p.status==="Cần bổ sung")))?`<button class="btn small danger" onclick="rmPropFile('${p.id}','${f.id}')">Xoá</button>`:''}
+      </div>`).join("")}`:''}
+    ${(canEditP)?`<label class="btn small" style="cursor:pointer;margin-top:8px;display:inline-block;">+ Đính kèm báo giá / tài liệu
+      <input type="file" multiple style="display:none" onchange="upPropFiles('${p.id}',this.files)"></label>`:''}
+    ${p.status==="Đã mua"?`<div class="notice ok" style="margin-top:12px;">
+      <b>Đã mua xong</b>${p.purchasedAt?` · Ngày mua: <b>${esc(p.purchasedAt)}</b>`:''}${p.poNumber?` · Số PO: <b>${esc(p.poNumber)}</b>`:''}
+      ${p.actualCost?`<div style="margin-top:4px;">Chi phí thực tế: <b>${fmtVnd(p.actualCost)}</b>
+        ${tot?` · Dự toán: ${fmtVnd(tot)} · Chênh lệch: <b style="color:${p.actualCost>tot?'var(--red)':'var(--green)'}">${p.actualCost>tot?'+':''}${fmtVnd(p.actualCost-tot)}</b>`:''}</div>`:''}</div>`:''}
+    ${p.decisionNote?`<div class="notice ${p.status==='Đã duyệt'||p.status==='Đã mua'?'ok':(p.status==='Từ chối'?'danger':'')}" style="margin-top:12px;">
       <b>Ý kiến Trưởng phòng${p.decidedBy?` (${esc(p.decidedBy)})`:''}:</b>
       <div style="margin-top:5px;white-space:pre-wrap;">${esc(p.decisionNote)}</div>
       ${p.decidedAt?`<div class="detail-row" style="margin-top:4px;">${new Date(p.decidedAt).toLocaleString('vi-VN')}</div>`:''}</div>`:''}
+    ${(p.history||[]).length>1?`
+      <div class="flow-title" style="font-size:12px;font-weight:800;margin:14px 0 6px;">LỊCH SỬ XỬ LÝ</div>
+      ${p.history.slice().reverse().map(x=>`<div style="display:flex;gap:9px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12.5px;">
+        <span class="detail-row" style="min-width:120px;">${x.at?new Date(x.at).toLocaleString('vi-VN'):''}</span>
+        <span style="flex:1;"><b>${esc(x.by||'')}</b> — ${esc(x.action||'')}${x.note?`<div class="detail-row" style="white-space:pre-wrap;">${esc(x.note)}</div>`:''}</span>
+      </div>`).join("")}`:''}
     <div class="modal-actions" style="flex-wrap:wrap;">
       <button class="btn" onclick="closeModal()">Đóng</button>
+      <button class="btn" onclick="cloneProp('${p.id}')">⧉ Tạo bản sao</button>
       <button class="btn success" onclick="exportPropExcel('${p.id}')">📊 Xuất phiếu Excel</button>
       ${canEditP?`<button class="btn" onclick="editProp('${p.id}')">Sửa</button>`:''}
       ${(isBoss()||(owner&&p.status==="Chờ duyệt"))?`<button class="btn danger" onclick="delProp('${p.id}')">Xoá</button>`:''}
-      ${isBoss()&&p.status!=="Đã duyệt"?`<button class="btn" onclick="decideProp('${p.id}','Cần bổ sung')">↩ Yêu cầu bổ sung</button>
+      ${isBoss()&&p.status==="Đã duyệt"?`<button class="btn success" onclick="markPurchased('${p.id}')">🛒 Đánh dấu ĐÃ MUA</button>`:''}
+      ${isBoss()&&p.status!=="Đã duyệt"&&p.status!=="Đã mua"?`<button class="btn" onclick="decideProp('${p.id}','Cần bổ sung')">↩ Yêu cầu bổ sung</button>
         <button class="btn danger" onclick="decideProp('${p.id}','Từ chối')">✕ Từ chối</button>
         <button class="btn success" onclick="decideProp('${p.id}','Đã duyệt')">✓ Duyệt</button>`:''}
     </div>`);
@@ -1508,6 +1734,95 @@ function exportPropsCsv(){
     {key:"status",label:"Trạng thái"},{key:"decidedBy",label:"Người duyệt"},{key:"note",label:"Ý kiến"}]));
 }
 
+/* ---- Dinh kem bao gia / tai lieu cho de xuat ---- */
+async function upPropFiles(id,fileList){
+  const p=PROPS.find(x=>x.id===id); if(!p) return;
+  if(!p.files) p.files=[];
+  const files=Array.from(fileList);
+  for(const file of files){
+    if(file.size>50*1024*1024){ toast("File quá lớn",esc(file.name)+" vượt 50MB.","err"); continue; }
+    try{
+      busy(true,`Đang tải lên: ${file.name}`);
+      const dataUrl=await new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file);});
+      const fid=uid("pf");
+      if(dataUrl.length<=UP_CHUNK){ await api("uploadFile",{fileId:fid,data:dataUrl}); }
+      else{
+        const n=Math.ceil(dataUrl.length/UP_CHUNK);
+        for(let c=0;c<n;c++){
+          document.getElementById("busyText").textContent=`Đang tải ${file.name} — phần ${c+1}/${n}`;
+          await api("uploadFile",{fileId:fid,chunkIndex:c,isLast:c===n-1,data:dataUrl.slice(c*UP_CHUNK,(c+1)*UP_CHUNK)});
+        }
+      }
+      p.files.push({id:fid,name:file.name,size:file.size,by:ME.name,at:todayStr()});
+      const d=await api("saveProposal",{proposal:{id:p.id,files:p.files}});
+      const i=PROPS.findIndex(x=>x.id===p.id); if(i>=0) PROPS[i]=d.proposal;
+      viewProp(p.id);
+      toast("Đã đính kèm",esc(file.name),"success");
+    }catch(e){ toast("Lỗi tải file",esc(e.message),"err"); }
+    finally{ busy(false); }
+  }
+}
+async function rmPropFile(id,fid){
+  if(!confirm("Xoá tài liệu đính kèm này?")) return;
+  const p=PROPS.find(x=>x.id===id); if(!p) return;
+  p.files=(p.files||[]).filter(f=>f.id!==fid);
+  try{
+    busy(true,"Đang xoá…");
+    try{ await api("deleteFile",{fileId:fid}); }catch(e){}
+    const d=await api("saveProposal",{proposal:{id:p.id,files:p.files}});
+    const i=PROPS.findIndex(x=>x.id===p.id); if(i>=0) PROPS[i]=d.proposal;
+    viewProp(p.id); toast("Đã xoá tài liệu","","warn");
+  }catch(e){ toast("Lỗi",esc(e.message),"err"); }
+  finally{ busy(false); }
+}
+/* ---- Danh dau da mua + chi phi thuc te ---- */
+function markPurchased(id){
+  const p=PROPS.find(x=>x.id===id); if(!p) return;
+  const est=propTotal(p);
+  openModalHtml(`
+    <h3>Đánh dấu ĐÃ MUA — ${esc(p.title)}</h3>
+    <div class="notice info">Ghi nhận kết quả mua sắm thực tế để đối chiếu với dự toán.</div>
+    <div class="form-row">
+      <div class="fld"><label>Ngày mua / nhận hàng</label><input type="date" id="pu_date" value="${todayStr()}"></div>
+      <div class="fld"><label>Số PO / Phiếu mua (nếu có)</label><input type="text" id="pu_po" placeholder="VD: PO-2026-0842"></div>
+      <div class="fld full"><label>Chi phí thực tế (đ)</label>
+        <input type="number" id="pu_cost" value="${est||''}" oninput="puDiff(${est})">
+        <div class="detail-row" style="margin-top:5px;">Dự toán ban đầu: <b>${fmtVnd(est)}</b> · <span id="puDiff">Chênh lệch: 0 đ</span></div></div>
+      <div class="fld full"><label>Ghi chú</label><textarea id="pu_note" rows="2" placeholder="VD: Mua tại Cty ABC, đã nhập kho, bàn giao cho tổ bảo trì"></textarea></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="viewProp('${id}')">Quay lại</button>
+      <button class="btn success" onclick="savePurchased('${id}')">✓ Xác nhận đã mua</button></div>`);
+}
+function puDiff(est){
+  const v=Number(document.getElementById("pu_cost").value)||0;
+  const d=v-est;
+  const el=document.getElementById("puDiff");
+  if(el) el.innerHTML=`Chênh lệch: <b style="color:${d>0?'var(--red)':(d<0?'var(--green)':'var(--text)')}">${d>0?'+':''}${fmtVnd(d)}</b>`;
+}
+async function savePurchased(id){
+  const cost=Number(document.getElementById("pu_cost").value)||0;
+  const note=document.getElementById("pu_note").value.trim();
+  try{
+    busy(true,"Đang lưu…");
+    const d=await api("saveProposal",{proposal:{id},decide:"Đã mua",
+      decisionNote:note||"Đã hoàn tất mua sắm.",
+      purchase:{date:document.getElementById("pu_date").value,cost,po:document.getElementById("pu_po").value.trim()}});
+    const i=PROPS.findIndex(x=>x.id===id); if(i>=0) PROPS[i]=d.proposal;
+    closeModal(); render(); toast("Đã ghi nhận mua sắm",fmtVnd(cost),"success");
+  }catch(e){ toast("Lỗi",esc(e.message),"err"); }
+  finally{ busy(false); }
+}
+/* ---- Nhan ban de xuat (dung cho vat tu mua dinh ky) ---- */
+function cloneProp(id){
+  const p=PROPS.find(x=>x.id===id); if(!p) return;
+  propDraft={id:null,type:p.type,title:(p.title||"")+" (bản sao)",content:p.content||"",reason:p.reason||"",
+    project:p.project||"",urgency:p.urgency||"Bình thường",expectedDate:"",
+    items:JSON.parse(JSON.stringify(p.items||[]))};
+  renderPropForm();
+  toast("Đã tạo bản sao","Sửa lại nội dung rồi bấm Gửi đề xuất.","success");
+}
+
 /* ============================================================
    KIEM TRA MAY CHU
    ============================================================ */
@@ -1583,12 +1898,98 @@ function changeServerUrl(){
 /* ============================================================
    XUAT EXCEL PHIEU DE NGHI MUA HANG
    ============================================================ */
-function xlsxReady(){
-  if(typeof XLSX==="undefined"){
-    alert("Không tải được thư viện Excel (cần Internet). Vui lòng kiểm tra kết nối rồi thử lại.");
-    return false;
+/* ---- Tu tao file .xlsx (khong phu thuoc SheetJS) ----
+   File xlsx thuc chat la 1 file zip chua cac file XML. */
+function xEsc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function colName(n){ let s=""; n++; while(n>0){ const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26);} return s; }
+function sheetXml(aoa,opt){
+  opt=opt||{};
+  let rows="";
+  aoa.forEach((row,r)=>{
+    let cells="";
+    (row||[]).forEach((v,c)=>{
+      if(v===null||v===undefined||v==="") return;
+      const ref=colName(c)+(r+1);
+      if(typeof v==="number"&&isFinite(v)){
+        cells+=`<c r="${ref}" s="${opt.numStyle||0}"><v>${v}</v></c>`;
+      }else{
+        cells+=`<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${xEsc(v)}</t></is></c>`;
+      }
+    });
+    if(cells) rows+=`<row r="${r+1}">${cells}</row>`;
+  });
+  const cols=(opt.cols||[]).map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join("");
+  const merges=(opt.merges||[]).length
+    ? `<mergeCells count="${opt.merges.length}">${opt.merges.map(m=>`<mergeCell ref="${m}"/>`).join("")}</mergeCells>` : "";
+  return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+${cols?`<cols>${cols}</cols>`:""}<sheetData>${rows}</sheetData>${merges}</worksheet>`;
+}
+async function buildXlsx(sheets){
+  if(typeof JSZip==="undefined") throw new Error("NOZIP");
+  const zip=new JSZip();
+  const n=sheets.length;
+  zip.file("[Content_Types].xml",`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+<Default Extension="xml" ContentType="application/xml"/>
+<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>
+${sheets.map((s,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")}
+</Types>`);
+  zip.folder("_rels").file(".rels",`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+</Relationships>`);
+  zip.folder("xl").file("workbook.xml",`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"
+ xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<sheets>${sheets.map((s,i)=>`<sheet name="${xEsc(s.name).slice(0,31)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join("")}</sheets></workbook>`);
+  zip.folder("xl").folder("_rels").file("workbook.xml.rels",`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+${sheets.map((s,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join("")}
+<Relationship Id="rId${n+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+</Relationships>`);
+  zip.folder("xl").file("styles.xml",`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<numFmts count="1"><numFmt numFmtId="164" formatCode="#,##0"/></numFmts>
+<fonts count="2"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts>
+<fills count="2"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill></fills>
+<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="3">
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>
+<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`);
+  const wsF=zip.folder("xl").folder("worksheets");
+  sheets.forEach((s,i)=>wsF.file(`sheet${i+1}.xml`,sheetXml(s.aoa,{cols:s.cols,merges:s.merges,numStyle:1})));
+  return await zip.generateAsync({type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+}
+function dlBlob(blob,name){
+  const u=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=u; a.download=name; document.body.appendChild(a); a.click();
+  setTimeout(()=>{ a.remove(); URL.revokeObjectURL(u); },1500);
+}
+/* Xuat file: uu tien .xlsx, that bai thi ha xuong CSV (Excel van mo duoc) */
+async function saveSheets(sheets,fname){
+  try{
+    const blob=await buildXlsx(sheets);
+    dlBlob(blob,fname+".xlsx");
+    toast("Đã tải Excel",esc(fname)+".xlsx","success");
+    return;
+  }catch(e){
+    const rows=[];
+    sheets.forEach((s,i)=>{
+      if(i) rows.push([""],["=== "+s.name+" ==="]);
+      s.aoa.forEach(r=>rows.push(r||[]));
+    });
+    const esc2=v=>{v=(v===undefined||v===null)?"":String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
+    const csv="\uFEFF"+rows.map(r=>r.map(esc2).join(",")).join("\n");
+    dlBlob(new Blob([csv],{type:"text/csv;charset=utf-8;"}),fname+".csv");
+    toast("Đã tải file CSV","Không nén được .xlsx (mạng chặn thư viện) — file .csv này mở bằng Excel bình thường.","warn");
   }
-  return true;
 }
 function dtStr(iso){
   if(!iso) return "";
@@ -1602,9 +2003,10 @@ function propCode(p){
   return "DX-"+ym+"-"+String(p.id||"").slice(-4).toUpperCase();
 }
 /* Phieu de nghi cho MOT de xuat */
-function exportPropExcel(id){
-  if(!xlsxReady()) return;
+async function exportPropExcel(id){
   const p=PROPS.find(x=>x.id===id); if(!p) return;
+  busy(true,"Đang tạo file Excel…");
+  try{
   const items=p.items||[];
   const tot=propTotal(p);
   const A=[];
@@ -1650,20 +2052,12 @@ function exportPropExcel(id){
   A.push([]);A.push([]);A.push([]);
   A.push([p.createdBy||"","","","",p.decidedBy||"","",""]);
 
-  const ws=XLSX.utils.aoa_to_sheet(A);
-  ws["!cols"]=[{wch:6},{wch:34},{wch:20},{wch:8},{wch:10},{wch:14},{wch:16},{wch:20},{wch:24}];
-  ws["!merges"]=[
-    {s:{r:0,c:0},e:{r:0,c:8}},{s:{r:1,c:0},e:{r:1,c:8}},
-    {s:{r:3,c:0},e:{r:3,c:8}},
-    {s:{r:7,c:1},e:{r:7,c:8}},
-    {s:{r:16,c:0},e:{r:16,c:8}},
-    {s:{r:19,c:0},e:{r:19,c:8}}
-  ];
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws,"Phieu de nghi");
-  const fname="PHIEU-DE-NGHI_"+propCode(p)+"_"+slugAscii(p.title||"")+".xlsx";
-  XLSX.writeFile(wb,fname);
-  toast("Đã xuất Excel",esc(fname),"success");
+  await saveSheets([{name:"Phieu de nghi",aoa:A,
+    cols:[6,34,20,8,10,14,16,20,24],
+    merges:["A1:I1","A2:I2","A4:I4","A17:I17","A20:I20"]}],
+    "PHIEU-DE-NGHI_"+propCode(p)+"_"+slugAscii(p.title||""));
+  }catch(e){ toast("Lỗi tạo file",esc(e.message),"err"); }
+  finally{ busy(false); }
 }
 function slugAscii(s){
   const M={"à":"a","á":"a","ạ":"a","ả":"a","ã":"a","â":"a","ầ":"a","ấ":"a","ậ":"a","ẩ":"a","ẫ":"a","ă":"a","ằ":"a","ắ":"a","ặ":"a","ẳ":"a","ẵ":"a","è":"e","é":"e","ẹ":"e","ẻ":"e","ẽ":"e","ê":"e","ề":"e","ế":"e","ệ":"e","ể":"e","ễ":"e","ì":"i","í":"i","ị":"i","ỉ":"i","ĩ":"i","ò":"o","ó":"o","ọ":"o","ỏ":"o","õ":"o","ô":"o","ồ":"o","ố":"o","ộ":"o","ổ":"o","ỗ":"o","ơ":"o","ờ":"o","ớ":"o","ợ":"o","ở":"o","ỡ":"o","ù":"u","ú":"u","ụ":"u","ủ":"u","ũ":"u","ư":"u","ừ":"u","ứ":"u","ự":"u","ử":"u","ữ":"u","ỳ":"y","ý":"y","ỵ":"y","ỷ":"y","ỹ":"y","đ":"d"};
@@ -1671,8 +2065,7 @@ function slugAscii(s){
   return o.split("").map(c=>((c>="a"&&c<="z")||(c>="0"&&c<="9"))?c:"-").join("").replace(/-+/g,"-").replace(/^-|-$/g,"").slice(0,40);
 }
 /* Xuat NHIEU de xuat: 1 sheet tong hop + 1 sheet chi tiet vat tu */
-function exportPropsExcel(onlyApproved){
-  if(!xlsxReady()) return;
+async function exportPropsExcel(onlyApproved){
   let list=PROPS.slice();
   if(onlyApproved) list=list.filter(p=>p.status==="Đã duyệt");
   if(!list.length){ alert(onlyApproved?"Chưa có đề xuất nào được duyệt.":"Chưa có đề xuất nào."); return; }
@@ -1682,20 +2075,20 @@ function exportPropsExcel(onlyApproved){
   const S1=[["DANH SÁCH ĐỀ XUẤT"+(onlyApproved?" ĐÃ DUYỆT":"")+" — PHÒNG KỸ THUẬT ĐIỆN & ĐIỆN TỬ"],
     ["Ngày xuất:",dtStr(new Date().toISOString()),"","Tổng số:",list.length],[],
     ["Số phiếu","Ngày giờ gửi","Người đề xuất","Loại đề xuất","Tiêu đề","Dự án","Mức độ",
-     "Số hạng mục","Tổng tiền (đ)","Trạng thái","Người xét duyệt","Ngày giờ duyệt","Ý kiến duyệt"]];
+     "Số hạng mục","Dự toán (đ)","Trạng thái","Người xét duyệt","Ngày giờ duyệt","Ý kiến duyệt",
+     "Ngày mua","Số PO","Chi phí thực tế (đ)","Chênh lệch (đ)"]];
   let grand=0;
   list.forEach(p=>{
     const t=propTotal(p); grand+=t;
+    const ac=Number(p.actualCost)||0;
     S1.push([propCode(p),dtStr(p.createdAt),p.createdBy||"",p.type||"",p.title||"",
       p.project||"",p.urgency||"",(p.items||[]).length,t||"",p.status||"",
-      p.decidedBy||"",dtStr(p.decidedAt),p.decisionNote||""]);
+      p.decidedBy||"",dtStr(p.decidedAt),p.decisionNote||"",
+      p.purchasedAt||"",p.poNumber||"",ac||"",ac&&t?ac-t:""]);
   });
   S1.push([]);
   S1.push(["","","","","","","","TỔNG CỘNG",grand]);
-  const ws1=XLSX.utils.aoa_to_sheet(S1);
-  ws1["!cols"]=[{wch:18},{wch:18},{wch:18},{wch:22},{wch:38},{wch:20},{wch:12},
-    {wch:12},{wch:16},{wch:13},{wch:18},{wch:18},{wch:40}];
-  ws1["!merges"]=[{s:{r:0,c:0},e:{r:0,c:12}}];
+  const cols1=[18,18,18,22,38,20,12,12,16,13,18,18,40,13,16,18,16];
 
   /* Sheet 2: chi tiet tung dong vat tu */
   const S2=[["CHI TIẾT VẬT TƯ / THIẾT BỊ"],[],
@@ -1714,17 +2107,15 @@ function exportPropsExcel(onlyApproved){
   });
   S2.push([]);
   S2.push(["","","","","","","","","TỔNG",gq,"",gt]);
-  const ws2=XLSX.utils.aoa_to_sheet(S2);
-  ws2["!cols"]=[{wch:18},{wch:18},{wch:18},{wch:34},{wch:20},{wch:6},
-    {wch:34},{wch:20},{wch:8},{wch:10},{wch:14},{wch:16},{wch:20},{wch:24},{wch:13},{wch:18},{wch:18}];
-  ws2["!merges"]=[{s:{r:0,c:0},e:{r:0,c:16}}];
-
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,ws1,"Tong hop de xuat");
-  XLSX.utils.book_append_sheet(wb,ws2,"Chi tiet vat tu");
-  const fname=(onlyApproved?"DE-XUAT-DA-DUYET_":"DE-XUAT-TAT-CA_")+todayStr()+".xlsx";
-  XLSX.writeFile(wb,fname);
-  toast("Đã xuất Excel",`${list.length} đề xuất · ${esc(fname)}`,"success");
+  const cols2=[18,18,18,34,20,6,34,20,8,10,14,16,20,24,13,18,18];
+  busy(true,"Đang tạo file Excel…");
+  try{
+    await saveSheets([
+      {name:"Tong hop de xuat",aoa:S1,cols:cols1,merges:["A1:Q1"]},
+      {name:"Chi tiet vat tu",aoa:S2,cols:cols2,merges:["A1:Q1"]}
+    ],(onlyApproved?"DE-XUAT-DA-DUYET_":"DE-XUAT-TAT-CA_")+todayStr());
+  }catch(e){ toast("Lỗi tạo file",esc(e.message),"err"); }
+  finally{ busy(false); }
 }
 
 /* ============================================================
@@ -1783,7 +2174,7 @@ async function delStaff(i){
   META.staff.splice(i,1); await saveMeta();
 }
 async function saveMeta(){
-  try{ busy(true,"Đang lưu…"); await api("saveMeta",{meta:META}); closeModal(); render(); toast("Đã lưu","","success"); }
+  try{ busy(true,"Đang lưu…"); await api("saveMeta",{meta:META}); CFG_DIRTY=false; closeModal(); render(); toast("Đã lưu","","success"); }
   catch(e){ toast("Lỗi",esc(e.message),"err"); }finally{ busy(false); }
 }
 
@@ -1877,20 +2268,23 @@ function viewSettings(){
           ${GATES.map(x=>`<option value="${x.n}" ${Number(d.gate)===x.n?'selected':''}>G${x.n}</option>`).join("")}</select>
         <button class="btn small danger" onclick="delDocCfg(${i})">Xoá</button></div>`).join("")}`;
     }).join("")}
-    <div class="modal-actions"><button class="btn primary" onclick="saveMeta()">Lưu cấu hình</button></div>
+    <div class="modal-actions" style="align-items:center;">
+      ${CFG_DIRTY?`<span style="font-size:12.5px;font-weight:700;color:var(--red);">⚠ Có thay đổi chưa lưu</span>`:''}
+      <div class="spacer"></div>
+      <button class="btn primary" onclick="saveMeta()">Lưu cấu hình</button></div>
   </div>`;
 }
 function ensureCfg(){ if(!META.config) META.config={}; if(!META.config.docs) META.config.docs=JSON.parse(JSON.stringify(DEFAULT_DOCS)); return META.config.docs; }
-function addDocCfg(){
+function addDocCfg(){ CFG_DIRTY=true;
   const n=prompt("Tên hạng mục mới:"); if(!n||!n.trim())return;
   const g=prompt("Thuộc Gate nào (1-5)?","2"); const gn=Number(g);
   if(!(gn>=1&&gn<=5)){alert("Gate phải từ 1 đến 5.");return;}
   ensureCfg().push({name:n.trim(),gate:gn}); render();
 }
-function renameDocCfg(i,v){ if(v.trim()) ensureCfg()[i].name=v.trim(); }
-function moveDocCfg(i,g){ ensureCfg()[i].gate=Number(g); render(); }
-function delDocCfg(i){ if(!confirm("Xoá hạng mục này khỏi cấu hình?"))return; ensureCfg().splice(i,1); render(); }
-function resetDocCfg(){ if(!confirm("Khôi phục danh sách 22 hạng mục mặc định?"))return;
+function renameDocCfg(i,v){ CFG_DIRTY=true; if(v.trim()) ensureCfg()[i].name=v.trim(); }
+function moveDocCfg(i,g){ CFG_DIRTY=true; ensureCfg()[i].gate=Number(g); render(); }
+function delDocCfg(i){ CFG_DIRTY=true; if(!confirm("Xoá hạng mục này khỏi cấu hình?"))return; ensureCfg().splice(i,1); render(); }
+function resetDocCfg(){ CFG_DIRTY=true; if(!confirm("Khôi phục danh sách 22 hạng mục mặc định?"))return;
   META.config=META.config||{}; META.config.docs=JSON.parse(JSON.stringify(DEFAULT_DOCS)); render(); }
 
 /* ============================================================
@@ -1967,6 +2361,7 @@ let CUR = null;   // du an dang mo
 function openProject(id){
   CUR = PROJECTS.find(p=>p.id===id);
   if(!CUR) return;
+  DIRTY=false; if(saveTimer){clearTimeout(saveTimer);saveTimer=null;}
   if(!CUR.docs||!CUR.docs.length) CUR.docs=docList().map(n=>({name:n,status:"WIP",files:[]}));
   CUR.docs.forEach(d=>{if(!d.files)d.files=[];});
   renderProjectModal();
@@ -2049,8 +2444,11 @@ function renderProjectModal(){
         </div>`).join("")}
     </div>`:''}
 
-    <div class="modal-actions" style="flex-wrap:wrap;">
-      <button class="btn" onclick="closeModal()">Đóng</button>
+    <div class="modal-actions" style="flex-wrap:wrap;align-items:center;">
+      <span id="saveMsg" style="font-size:12px;font-weight:700;color:var(--text-light);"></span>
+      <div class="spacer"></div>
+      <button class="btn" onclick="closeProjectModal()">Đóng</button>
+      ${editable?`<button class="btn" onclick="saveProjectNow()">💾 Lưu thay đổi</button>`:''}
       ${isLeader()?`<button class="btn" onclick="editProject('${p.id}')">Sửa thông tin</button>`:''}
       ${editable?`<button class="btn" onclick="openTasks('${p.id}')">Công việc (${(p.tasks||[]).length})</button>`:''}
       ${editable&&gs!=="cho_duyet"?`<button class="btn success" onclick="submitToBoss()">📤 Gửi Trưởng phòng duyệt</button>`:''}
@@ -2063,7 +2461,58 @@ function renderProjectModal(){
       ${isBoss()&&gs!=="hoan_thanh"&&Number(p.gate)>1?`<button class="btn danger" onclick="gateDecide('undo')">⤺ Huỷ duyệt — lùi về G${Number(p.gate)-1}</button>`:''}
     </div>`);
 }
-function setDoc(i,v){ CUR.docs[i].status=v; }
+/* ---- Doi trang thai ho so: cap nhat ngay + tu dong luu ---- */
+let DIRTY=false, saveTimer=null, saving=false;
+let CFG_DIRTY=false;
+function setDoc(i,v){
+  CUR.docs[i].status=v;
+  DIRTY=true;
+  renderProjectModal();            // ve lai de thanh tien do RELEASED cap nhat ngay
+  scheduleSave();
+}
+function scheduleSave(){
+  if(saveTimer) clearTimeout(saveTimer);
+  setSaveMsg("Đang lưu…");
+  saveTimer=setTimeout(async()=>{
+    saveTimer=null;
+    if(!DIRTY||saving) return;
+    saving=true;
+    const ok=await saveProject(true);
+    saving=false;
+    if(ok){ DIRTY=false; setSaveMsg("✓ Đã lưu"); setTimeout(()=>setSaveMsg(""),2500); }
+    else setSaveMsg("⚠ Lưu lỗi — bấm Lưu thay đổi");
+  },700);
+}
+function setSaveMsg(t){
+  const el=document.getElementById("saveMsg");
+  if(el) el.textContent=t||"";
+}
+async function flushSave(){
+  if(saveTimer){ clearTimeout(saveTimer); saveTimer=null; }
+  if(DIRTY&&!saving){
+    saving=true;
+    const ok=await saveProject(true);
+    saving=false;
+    if(ok) DIRTY=false;
+    return ok;
+  }
+  return true;
+}
+async function saveProjectNow(){
+  const ok=await flushSave();
+  if(ok){ setSaveMsg("✓ Đã lưu"); toast("Đã lưu","Dữ liệu đã cập nhật lên máy chủ.","success"); renderProjectModal(); }
+}
+/* Dong cua so du an: luu not thay doi con dang cho */
+async function closeProjectModal(){
+  if(DIRTY){
+    setSaveMsg("Đang lưu…");
+    const ok=await flushSave();
+    if(!ok&&!confirm("Chưa lưu được lên máy chủ. Vẫn đóng và bỏ thay đổi?")) return;
+  }
+  DIRTY=false;
+  closeModal();
+  render();
+}
 
 /* ---- Upload / download file qua may chu ---- */
 const UP_CHUNK=3*1024*1024;
@@ -2128,18 +2577,20 @@ async function saveProject(silent){
     if(i>=0) PROJECTS[i]=d.project;
     CUR=d.project;
     if(!silent) toast("Đã lưu","Dữ liệu đã cập nhật lên máy chủ.","success");
-    render();
+    render();   // cap nhat KPI, thanh tien do, bang danh sach
     return true;
   }catch(e){ toast("Lỗi lưu",esc(e.message),"err"); return false; }
   finally{ if(!silent) busy(false); }
 }
 async function submitToBoss(){
   if(!confirm(`Gửi dự án "${CUR.name}" cho Trưởng phòng duyệt?\n\nSau khi gửi anh/chị vẫn sửa và gửi lại được.`)) return;
+  await flushSave();
   CUR.gateStatus="cho_duyet";
   CUR.awaitingResubmit=false;
   if(await saveProject()){ closeModal(); toast("Đã gửi","Trưởng phòng sẽ nhận được ngay.","success"); }
 }
 async function gateDecide(kind){
+  await flushSave();
   const p=CUR, gate=Number(p.gate)||1;
   try{
     busy(true,"Đang xử lý…");
