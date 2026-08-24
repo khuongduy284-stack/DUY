@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0043)file:///C:/Users/HP/Downloads/index_11.html -->
+<!-- saved from url=(0043)file:///C:/Users/HP/Downloads/index_12.html -->
 <html lang="vi"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -227,7 +227,7 @@
 <body>
 
 <!-- ============ MAN HINH DANG NHAP ============ -->
-<div id="loginScreen" style="display: none;">
+<div id="loginScreen">
   <div class="login-box">
     <div class="login-logo">⚡</div>
     <h1>Quản lý Quy trình Kỹ thuật</h1>
@@ -253,169 +253,35 @@
       <button class="btn primary wide" id="lgBtn" onclick="doLogin()">Đăng nhập</button>
       <div class="login-hint">
         Chưa có tài khoản? Liên hệ Trưởng phòng để được cấp.<br>
-        <a href="file:///C:/Users/HP/Downloads/index_11.html#" onclick="showSetup();return false;" style="color:var(--accent);">Đổi địa chỉ máy chủ</a>
+        <a href="file:///C:/Users/HP/Downloads/index_12.html#" onclick="showSetup();return false;" style="color:var(--accent);">Đổi địa chỉ máy chủ</a>
       </div>
     </div>
   </div>
 </div>
 
 <!-- ============ APP ============ -->
-<div id="app" style="display: block;">
+<div id="app">
   <header>
     <div>
       <h1>Quản lý Quy trình Kỹ thuật Điện – Điện tử</h1>
-      <div class="sub" id="hdrSub">VNT Việt Nam · Trưởng phòng</div>
+      <div class="sub" id="hdrSub">VNT Việt Nam</div>
     </div>
     <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;">
-      <span class="sync-pill" id="syncPill" onclick="toggleAuto()"><span class="led"></span>Thủ công · 08:40</span>
+      <span class="sync-pill" id="syncPill" onclick="toggleAuto()"><span class="led"></span>Tự động</span>
       <button class="btn" onclick="refreshAll(true)">Làm mới</button>
       <div class="userchip">
         <div>
-          <div class="nm" id="uName">KDUY_E</div>
-          <div class="rl" id="uRole">Trưởng phòng</div>
+          <div class="nm" id="uName">—</div>
+          <div class="rl" id="uRole">—</div>
         </div>
-        <div class="avatar" id="uAvt">K</div>
+        <div class="avatar" id="uAvt">?</div>
       </div>
       <button class="btn" onclick="logout()">Thoát</button>
     </div>
   </header>
-  <nav class="tabs" id="tabNav"><button class="active" onclick="go(&#39;dashboard&#39;)">Tổng quan<span class="dot">10</span></button><button class="" onclick="go(&#39;projects&#39;)">Dự án &amp; Hồ sơ</button><button class="" onclick="go(&#39;tasks&#39;)">Giao việc</button><button class="" onclick="go(&#39;mywork&#39;)">Việc của tôi</button><button class="" onclick="go(&#39;files&#39;)">Kho file</button><button class="" onclick="go(&#39;props&#39;)">Đề xuất</button><button class="" onclick="go(&#39;reports&#39;)">Báo cáo</button><button class="" onclick="go(&#39;staff&#39;)">Nhân viên</button><button class="" onclick="go(&#39;users&#39;)">Tài khoản</button><button class="" onclick="go(&#39;guide&#39;)">Hướng dẫn</button><button class="" onclick="go(&#39;settings&#39;)">⚙ Cài đặt</button><button class="" onclick="go(&#39;account&#39;)">Tài khoản của tôi</button></nav>
-  <main id="mainArea">
-    <div class="card" style="border-left:5px solid var(--red);">
-      <h2>⚠ Cần xử lý ngay</h2>
-      <div class="notice danger"><b>10 dự án TRỄ HẠN:</b><br>• <b>BAKE OVEN</b> (HÀO_E) — trễ 2 ngày<br>• <b>BAKE OVEN</b> (ĐĂNG_E) — trễ 1 ngày<br>• <b>BAKE OVEN</b> (DUY_E) — trễ 2 ngày<br>• <b>BAKE OVEN CONV</b> (HÀO_E) — trễ 2 ngày<br>• <b>CUT OUT</b> (DUY_E) — trễ 2 ngày</div>
-      
-      
-    </div>
-    <div class="grid-kpi">
-      <div class="kpi-box"><div class="num">15</div><div class="lbl">Tổng dự án</div></div>
-      <div class="kpi-box mid"><div class="num">1%</div><div class="lbl">Hồ sơ RELEASED (2/330)</div></div>
-      <div class="kpi-box ok"><div class="num">0</div><div class="lbl">Chờ anh duyệt</div></div>
-      <div class="kpi-box warn"><div class="num">10</div><div class="lbl">Dự án trễ hạn</div></div>
-      <div class="kpi-box ok"><div class="num">5</div><div class="lbl">Đã Release</div></div>
-      <div class="kpi-box"><div class="num">9</div><div class="lbl">Nhân sự</div></div>
-    </div>
-    <div class="card">
-      <h2>Phân bố dự án theo Gate</h2>
-      <div class="gate-track">
-        <div class="gate-node g1 ">
-          <span class="gn">0</span>Tiếp nhận yêu cầu</div><div class="gate-node g2 ">
-          <span class="gn">0</span>Thiết kế sơ bộ</div><div class="gate-node g3 current">
-          <span class="gn">7</span>Thiết kế chi tiết</div><div class="gate-node g4 current">
-          <span class="gn">2</span>Design Review</div><div class="gate-node g5 current">
-          <span class="gn">6</span>Phê duyệt / Release</div>
-      </div>
-    </div>
-    <div class="card">
-      <h2>Dự án cần xử lý <span class="sub">Sắp xếp theo mức ưu tiên</span></h2>
-      <table><thead><tr><th>Dự án</th><th>PIC</th><th>Gate</th><th>Trạng thái</th><th>Hồ sơ</th><th>Deadline</th><th>Thao tác</th></tr></thead><tbody>
-  <tr class=" ">
-      <td data-label="Dự án"><b>BAKE OVEN</b>
-        
-        
-        <div class="detail-row">KAI METAL</div></td>
-      <td data-label="PIC">HÀO_E</td>
-      <td data-label="Gate"><span class="badge gate5">G5</span><div class="detail-row">Chuẩn bị hồ sơ</div></td>
-      <td data-label="Trạng thái"><span class="badge wip">Đang chờ NV làm</span>
-        <div class="detail-row">Truong phong · 24/8/2026</div></td>
-      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
-        <div class="detail-row">0/22</div></td>
-      <td data-label="Deadline">2026-08-22 <span class="badge crit">Trễ 2d</span></td>
-      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject(&#39;p_msr78gy67ze70&#39;)">Mở</button></td>
-    </tr><tr class=" ">
-      <td data-label="Dự án"><b>BAKE OVEN</b>
-        
-        
-        <div class="detail-row">LÂM VIÊN</div></td>
-      <td data-label="PIC">ĐĂNG_E</td>
-      <td data-label="Gate"><span class="badge gate3">G3</span><div class="detail-row">Thiết kế chi tiết</div></td>
-      <td data-label="Trạng thái"><span class="badge wip">Đang chờ NV làm</span>
-        <div class="detail-row">KDUY_E · 22/8/2026</div></td>
-      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
-        <div class="detail-row">0/22</div></td>
-      <td data-label="Deadline">2026-08-23 <span class="badge crit">Trễ 1d</span></td>
-      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject(&#39;p_mt2b15e1103kz&#39;)">Mở</button></td>
-    </tr><tr class=" ">
-      <td data-label="Dự án"><b>BAKE OVEN</b>
-        
-        
-        <div class="detail-row">TSUKUBA</div></td>
-      <td data-label="PIC">DUY_E</td>
-      <td data-label="Gate"><span class="badge gate3">G3</span><div class="detail-row">Thiết kế chi tiết</div></td>
-      <td data-label="Trạng thái"><span class="badge wip">Đang chờ NV làm</span>
-        <div class="detail-row">KDUY_E · 21/8/2026</div></td>
-      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
-        <div class="detail-row">0/22</div></td>
-      <td data-label="Deadline">2026-08-22 <span class="badge crit">Trễ 2d</span></td>
-      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject(&#39;p_msr66vekap08q&#39;)">Mở</button></td>
-    </tr><tr class=" ">
-      <td data-label="Dự án"><b>BAKE OVEN CONV</b>
-        
-        
-        <div class="detail-row">KAI METAL</div></td>
-      <td data-label="PIC">HÀO_E</td>
-      <td data-label="Gate"><span class="badge gate4">G4</span><div class="detail-row">Trình bày + sửa</div></td>
-      <td data-label="Trạng thái"><span class="badge wip">Đang chờ NV làm</span>
-        <div class="detail-row">Truong phong · 24/8/2026</div></td>
-      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
-        <div class="detail-row">0/22</div></td>
-      <td data-label="Deadline">2026-08-22 <span class="badge crit">Trễ 2d</span></td>
-      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject(&#39;p_msr790andf6lq&#39;)">Mở</button></td>
-    </tr><tr class=" ">
-      <td data-label="Dự án"><b>CUT OUT</b>
-        
-        
-        <div class="detail-row">TSUKUBA</div></td>
-      <td data-label="PIC">DUY_E</td>
-      <td data-label="Gate"><span class="badge gate3">G3</span><div class="detail-row">Thiết kế chi tiết</div></td>
-      <td data-label="Trạng thái"><span class="badge wip">Đang chờ NV làm</span>
-        <div class="detail-row">KDUY_E · 21/8/2026</div></td>
-      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
-        <div class="detail-row">0/22</div></td>
-      <td data-label="Deadline">2026-08-22 <span class="badge crit">Trễ 2d</span></td>
-      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject(&#39;p_msr69fm63w64r&#39;)">Mở</button></td>
-    </tr><tr class=" ">
-      <td data-label="Dự án"><b>ELECTRONIC CABINET</b>
-        
-        
-        <div class="detail-row">TSUKUBA</div></td>
-      <td data-label="PIC">DUY_E</td>
-      <td data-label="Gate"><span class="badge gate3">G3</span><div class="detail-row">Thiết kế chi tiết</div></td>
-      <td data-label="Trạng thái"><span class="badge wip">Đang chờ NV làm</span>
-        <div class="detail-row">KDUY_E · 21/8/2026</div></td>
-      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
-        <div class="detail-row">0/22</div></td>
-      <td data-label="Deadline">2026-08-22 <span class="badge crit">Trễ 2d</span></td>
-      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject(&#39;p_msr69zq2h4nxn&#39;)">Mở</button></td>
-    </tr><tr class=" ">
-      <td data-label="Dự án"><b>PAINT BOOTH</b>
-        
-        
-        <div class="detail-row">CONDOR</div></td>
-      <td data-label="PIC">HÀO_E</td>
-      <td data-label="Gate"><span class="badge gate4">G4</span><div class="detail-row">Trình bày + sửa</div></td>
-      <td data-label="Trạng thái"><span class="badge wip">Đang chờ NV làm</span>
-        <div class="detail-row">KDUY_E · 24/8/2026</div></td>
-      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:9%"></div></div>
-        <div class="detail-row">2/22</div></td>
-      <td data-label="Deadline">2026-08-22 <span class="badge crit">Trễ 2d</span></td>
-      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject(&#39;p_msr7ikh8drz1q&#39;)">Mở</button></td>
-    </tr><tr class=" ">
-      <td data-label="Dự án"><b>PAINT BOOTH</b>
-        
-        
-        <div class="detail-row">KAI METAL</div></td>
-      <td data-label="PIC">ĐĂNG_E</td>
-      <td data-label="Gate"><span class="badge gate3">G3</span><div class="detail-row">Thiết kế chi tiết</div></td>
-      <td data-label="Trạng thái"><span class="badge wip">Đang chờ NV làm</span>
-        <div class="detail-row">KDUY_E · 22/8/2026</div></td>
-      <td data-label="Hồ sơ"><div class="progress-wrap"><div class="progress-bar" style="width:0%"></div></div>
-        <div class="detail-row">0/22</div></td>
-      <td data-label="Deadline">2026-08-23 <span class="badge crit">Trễ 1d</span></td>
-      <td data-label="Thao tác"><button class="btn small primary" onclick="openProject(&#39;p_mt29hdks9fohe&#39;)">Mở</button></td>
-    </tr></tbody></table>
-    </div></main>
-  <footer id="appFooter">Phiên bản 3.7 · Dữ liệu lưu tập trung trên máy chủ nội bộ</footer>
+  <nav class="tabs" id="tabNav"></nav>
+  <main id="mainArea"></main>
+  <footer id="appFooter"></footer>
 </div>
 
 <div class="modal-overlay" id="modalOverlay" onclick="if(event.target===this) closeModal();"><div class="modal" id="modalBody"></div></div>
@@ -426,7 +292,7 @@
 /* ============================================================
    CAU HINH & TRANG THAI
    ============================================================ */
-const APP_VERSION = "3.7";
+const APP_VERSION = "3.8";
 const NEED_BACKEND = 4;   // Phien ban backend toi thieu
 let BACKEND_VER = null;
 let BACKEND_FAIL = null;   // ten lenh bi may chu tu choi
@@ -2461,8 +2327,8 @@ function renderProjectModal(){
       ${isBoss()&&gs!=="hoan_thanh"&&Number(p.gate)>1?`<button class="btn danger" onclick="gateDecide('undo')">⤺ Huỷ duyệt — lùi về G${Number(p.gate)-1}</button>`:''}
     </div>`);
 }
-/* ---- Doi trang thai ho so: cap nhat ngay + tu dong luu ---- */
-let DIRTY=false, saveTimer=null, saving=false;
+/* ---- Doi trang thai ho so: cap nhat ngay + tu dong luu (AN TOAN, khong mat du lieu) ---- */
+let DIRTY=false, saveTimer=null;
 let CFG_DIRTY=false;
 function setDoc(i,v){
   CUR.docs[i].status=v;
@@ -2475,12 +2341,11 @@ function scheduleSave(){
   setSaveMsg("Đang lưu…");
   saveTimer=setTimeout(async()=>{
     saveTimer=null;
-    if(!DIRTY||saving) return;
-    saving=true;
+    if(!DIRTY) return;
+    DIRTY=false;              // dat truoc khi gui: neu co sua tiep trong luc dang luu, DIRTY se bat lai = true
     const ok=await saveProject(true);
-    saving=false;
-    if(ok){ DIRTY=false; setSaveMsg("✓ Đã lưu"); setTimeout(()=>setSaveMsg(""),2500); }
-    else setSaveMsg("⚠ Lưu lỗi — bấm Lưu thay đổi");
+    if(ok){ setSaveMsg("✓ Đã lưu"); setTimeout(()=>setSaveMsg(""),2500); }
+    else { DIRTY=true; setSaveMsg("⚠ Lưu lỗi — bấm Lưu thay đổi"); }
   },700);
 }
 function setSaveMsg(t){
@@ -2489,11 +2354,10 @@ function setSaveMsg(t){
 }
 async function flushSave(){
   if(saveTimer){ clearTimeout(saveTimer); saveTimer=null; }
-  if(DIRTY&&!saving){
-    saving=true;
+  if(DIRTY){
+    DIRTY=false;
     const ok=await saveProject(true);
-    saving=false;
-    if(ok) DIRTY=false;
+    if(!ok) DIRTY=true;
     return ok;
   }
   return true;
@@ -2568,19 +2432,55 @@ async function rmFile(idx,fid){
   renderProjectModal();
 }
 
-/* ---- Luu du an ---- */
+/* ---- Luu du an (AN TOAN: xep hang, khong bao gio de 2 luot luu chay song song,
+   va KHONG BAO GIO ghi de du lieu dang sua dang bang phan hoi cu tu may chu) ---- */
+let saveInFlight=null, saveQueued=false;
 async function saveProject(silent){
-  try{
-    if(!silent) busy(true,"Đang lưu…");
-    const d=await api("saveProject",{project:CUR});
-    const i=PROJECTS.findIndex(x=>x.id===CUR.id);
-    if(i>=0) PROJECTS[i]=d.project;
-    CUR=d.project;
-    if(!silent) toast("Đã lưu","Dữ liệu đã cập nhật lên máy chủ.","success");
-    render();   // cap nhat KPI, thanh tien do, bang danh sach
-    return true;
-  }catch(e){ toast("Lỗi lưu",esc(e.message),"err"); return false; }
-  finally{ if(!silent) busy(false); }
+  const targetId = CUR ? CUR.id : null;
+  // Neu dang co 1 luot luu chay roi -> khong gui song song, cho luot do xong
+  // roi tu dong luu tiep 1 lan nua de khong bo sot thay doi vua go
+  if(saveInFlight){
+    saveQueued=true;
+    return saveInFlight;
+  }
+  saveInFlight=(async()=>{
+    let ok=true;
+    try{
+      if(!silent) busy(true,"Đang lưu…");
+      const payload=JSON.parse(JSON.stringify(CUR));   // chup nhanh du lieu tai thoi diem gui
+      const d=await api("saveProject",{project:payload});
+      // CHI dong bo cac truong may chu co quyen quyet dinh (Gate, trang thai duyet...),
+      // KHONG ghi de docs/tasks dia phuong -> tranh mat thay doi nguoi dung vua nhap trong luc cho phan hoi
+      if(CUR && CUR.id===d.project.id){
+        CUR.gate=d.project.gate;
+        CUR.gateStatus=d.project.gateStatus;
+        CUR.feedback=d.project.feedback;
+        CUR.awaitingResubmit=d.project.awaitingResubmit;
+        CUR.updatedAt=d.project.updatedAt;
+        CUR.updatedBy=d.project.updatedBy;
+        if(!CUR.createdAt) CUR.createdAt=d.project.createdAt;
+      }
+      const finalObj=(CUR&&CUR.id===d.project.id)?CUR:d.project;
+      const i=PROJECTS.findIndex(x=>x.id===d.project.id);
+      if(i>=0) PROJECTS[i]=finalObj; else PROJECTS.push(finalObj);
+      if(!silent) toast("Đã lưu","Dữ liệu đã cập nhật lên máy chủ.","success");
+      render();   // cap nhat KPI, thanh tien do, bang danh sach
+    }catch(e){
+      toast("Lỗi lưu",esc(e.message),"err");
+      ok=false;
+    }finally{
+      if(!silent) busy(false);
+    }
+    return ok;
+  })();
+  const result=await saveInFlight;
+  saveInFlight=null;
+  if(saveQueued){
+    saveQueued=false;
+    // co thay doi moi phat sinh trong luc dang luu -> tu dong luu tiep, khong can nguoi dung bam lai
+    saveProject(true);
+  }
+  return result;
 }
 async function submitToBoss(){
   if(!confirm(`Gửi dự án "${CUR.name}" cho Trưởng phòng duyệt?\n\nSau khi gửi anh/chị vẫn sửa và gửi lại được.`)) return;
