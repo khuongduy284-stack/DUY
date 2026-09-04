@@ -292,7 +292,7 @@
 /* ============================================================
    CAU HINH & TRANG THAI
    ============================================================ */
-const APP_VERSION = "4.0";
+const APP_VERSION = "4.1";
 const NEED_BACKEND = 5;   // Phien ban backend toi thieu
 let BACKEND_VER = null;
 let BACKEND_FAIL = null;   // ten lenh bi may chu tu choi
@@ -2041,7 +2041,8 @@ function viewInventory(){
         <div class="spacer"></div>
         <button class="btn" onclick="loadInventory(true)">🔄 Làm mới</button>
         <button class="btn" onclick="exportInvCsv()">Xuất CSV</button>
-        ${isBoss()?`<label class="btn" style="cursor:pointer;">📥 Nhập seed JSON<input type="file" accept=".json" style="display:none" onchange="importInvSeed(this.files)"></label>`:''}
+        ${isBoss()?`<label class="btn primary" style="cursor:pointer;">📤 Tải Excel của tôi (.xlsx)<input type="file" accept=".xlsx" style="display:none" onchange="importInvExcel(this.files)"></label>
+        <label class="btn" style="cursor:pointer;">📥 Nhập seed JSON<input type="file" accept=".json" style="display:none" onchange="importInvSeed(this.files)"></label>`:''}
       </div>
       ${sub==='list'?renderInvList():renderInvLog()}
     </div>`;
@@ -2285,6 +2286,231 @@ function exportInvCsv(){
   const csv="\\uFEFF"+[headers.map(h=>esc2(h.label)).join(",")].concat(rows.map(r=>headers.map(h=>esc2(r[h.key])).join(","))).join("\\n");
   dlBlob(new Blob([csv],{type:"text/csv;charset=utf-8;"}),"ton-kho-"+todayStr()+".csv");
 }
+/* ============================================================
+   DOC FILE EXCEL (.xlsx) THAT NGAY TRONG TRINH DUYET
+   Xlsx thuc chat la 1 file zip chua cac XML - dung lai JSZip da co san
+   de mo, khong can them thu vien ngoai.
+   ============================================================ */
+function xColToIndex(letters){
+  let n=0;
+  for(let i=0;i<letters.length;i++){ n=n*26+(letters.charCodeAt(i)-64); }
+  return n-1;
+}
+function xDecodeEntities(s){
+  return String(s||"").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"')
+    .replace(/&apos;/g,"'").replace(/&amp;/g,"&");
+}
+function xExcelSerialToDate(serial){
+  const utcDays=Math.floor(serial-25569);
+  const utcMs=utcDays*86400*1000;
+  const frac=serial-Math.floor(serial);
+  return new Date(utcMs+Math.round(frac*86400*1000));
+}
+function xParseSharedStrings(xml){
+  const list=[];
+  const siRe=/<si>([\s\S]*?)<\/si>/g;
+  let m;
+  while((m=siRe.exec(xml))){
+    const content=m[1];
+    let text="";
+    const tRe=/<t[^>]*>([\s\S]*?)<\/t>/g;
+    let tm;
+    while((tm=tRe.exec(content))){ text+=tm[1]; }
+    list.push(xDecodeEntities(text));
+  }
+  return list;
+}
+function xParseSheetXml(xml, sharedStrings){
+  const rows={};
+  const rowRe=/<row\b([^>]*)>([\s\S]*?)<\/row>/g;
+  let rm, autoRow=0;
+  while((rm=rowRe.exec(xml))){
+    const rAttrM=/r="(\d+)"/.exec(rm[1]);
+    const rIdx=rAttrM? parseInt(rAttrM[1],10)-1 : autoRow;
+    autoRow=rIdx+1;
+    const cellRe=/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;
+    let cm, autoCol=0;
+    const rowArr=[];
+    while((cm=cellRe.exec(rm[2]))){
+      const attrs=cm[1]||"";
+      const inner=cm[2]||"";
+      const refM=/r="([A-Z]+)\d+"/.exec(attrs);
+      const colIdx=refM? xColToIndex(refM[1]) : autoCol;
+      autoCol=colIdx+1;
+      const tM=/t="([^"]+)"/.exec(attrs);
+      const type=tM? tM[1] : null;
+      let value=null;
+      if(type==="inlineStr"){
+        const tMatch=/<t[^>]*>([\s\S]*?)<\/t>/.exec(inner);
+        value=tMatch? xDecodeEntities(tMatch[1]) : "";
+      } else {
+        const vMatch=/<v>([\s\S]*?)<\/v>/.exec(inner);
+        const raw=vMatch? vMatch[1] : "";
+        if(type==="s") value=sharedStrings[parseInt(raw,10)] || "";
+        else if(type==="str"||type==="b") value=raw;
+        else value=raw===""? null : parseFloat(raw);
+      }
+      rowArr[colIdx]=value;
+    }
+    rows[rIdx]=rowArr;
+  }
+  const maxRow=Math.max(-1,...Object.keys(rows).map(Number));
+  const out=[];
+  for(let i=0;i<=maxRow;i++) out.push(rows[i]||[]);
+  return out;
+}
+function xParseWorkbookSheets(wbXml, relsXml){
+  const sheets=[];
+  const sheetRe=/<sheet\b([^>]*)\/>/g;
+  let m;
+  while((m=sheetRe.exec(wbXml))){
+    const attrs=m[1];
+    const nameM=/name="([^"]*)"/.exec(attrs);
+    const ridM=/r:id="([^"]*)"/.exec(attrs);
+    if(nameM&&ridM) sheets.push({name:xDecodeEntities(nameM[1]), rId:ridM[1]});
+  }
+  const relMap={};
+  const relRe=/<Relationship\b([^>]*)\/>/g;
+  let rm;
+  while((rm=relRe.exec(relsXml))){
+    const idM=/Id="([^"]*)"/.exec(rm[1]);
+    const tgM=/Target="([^"]*)"/.exec(rm[1]);
+    if(idM&&tgM) relMap[idM[1]]=tgM[1];
+  }
+  return sheets.map(s=>({name:s.name, path:"xl/"+(relMap[s.rId]||"").replace(/^\/+/, "")}));
+}
+async function parseXlsxFile(file){
+  if(typeof JSZip==="undefined") throw new Error("Chưa tải được thư viện đọc file (cần Internet). Vui lòng thử lại khi có mạng.");
+  const buf=await file.arrayBuffer();
+  const zip=await JSZip.loadAsync(buf);
+  const wbFile=zip.file("xl/workbook.xml");
+  if(!wbFile) throw new Error("File không đúng định dạng .xlsx (thiếu xl/workbook.xml).");
+  const wbXml=await wbFile.async("string");
+  const relsFile=zip.file("xl/_rels/workbook.xml.rels");
+  const relsXml=relsFile? await relsFile.async("string") : "";
+  const sheets=xParseWorkbookSheets(wbXml, relsXml);
+  let sharedStrings=[];
+  const ssFile=zip.file("xl/sharedStrings.xml");
+  if(ssFile) sharedStrings=xParseSharedStrings(await ssFile.async("string"));
+  const result={};
+  for(const s of sheets){
+    const f=zip.file(s.path);
+    if(!f) continue;
+    const xml=await f.async("string");
+    result[s.name]=xParseSheetXml(xml, sharedStrings);
+  }
+  return result;
+}
+/* Nhan dien sheet Danh muc ton kho (co cot Ma hang + Ten hang) */
+function xMapInventorySheet(rows){
+  if(!rows||!rows.length) return null;
+  const header=rows[0].map(h=>String(h||"").trim());
+  const idx=name=>header.findIndex(h=>h===name);
+  const iCode=idx("Mã hàng"), iName=idx("Tên hàng");
+  if(iCode<0||iName<0) return null;
+  const iDesc=idx("Mô tả"), iUnit=idx("ĐVT"), iGroup=idx("Nhóm VTHH"), iOrigin=idx("Nguồn gốc"), iLoc=idx("Vị trí"),
+    iOpen=idx("Tồn đầu kỳ (gốc)"), iIn=idx("Tổng nhập (lũy kế)"), iOut=idx("Tổng xuất (lũy kế)"),
+    iCur=idx("Tồn hiện tại"), iMin=idx("SL tồn tối thiểu");
+  const items=[];
+  for(let r=1;r<rows.length;r++){
+    const row=rows[r]; if(!row||row[iCode]===undefined||row[iCode]===null||row[iCode]==="") continue;
+    const opening=Number(row[iOpen])||0, totalIn=Number(row[iIn])||0, totalOut=Number(row[iOut])||0;
+    const hasCur=iCur>=0 && row[iCur]!==null && row[iCur]!==undefined && row[iCur]!=="";
+    items.push({
+      code:String(row[iCode]).trim(), name:String(row[iName]||"").trim(),
+      desc: iDesc>=0? String(row[iDesc]||"").trim() : "",
+      unit: iUnit>=0? (String(row[iUnit]||"").trim()||"Cái") : "Cái",
+      group: iGroup>=0? String(row[iGroup]||"").trim() : "",
+      origin: iOrigin>=0? String(row[iOrigin]||"").trim() : "",
+      location: iLoc>=0? String(row[iLoc]||"").trim() : "",
+      openingQty: opening, totalIn: totalIn, totalOut: totalOut,
+      currentQty: hasCur? Number(row[iCur]) : (opening+totalIn-totalOut),
+      minQty: iMin>=0? (Number(row[iMin])||0) : 0
+    });
+  }
+  return items;
+}
+/* Nhan dien sheet Nhat ky xuat nhap (co cot Ma hang + Loai Nhap/Xuat) */
+function xMapLogSheet(rows){
+  if(!rows||!rows.length) return null;
+  const header=rows[0].map(h=>String(h||"").trim());
+  const idx=name=>header.findIndex(h=>h===name);
+  const iCode=idx("Mã hàng"), iType=idx("Loại (Nhập/Xuất)");
+  if(iCode<0||iType<0) return null;
+  const iStt=idx("STT"), iAt=idx("Ngày giờ"), iDoc=idx("Số phiếu"), iName=idx("Tên hàng"), iUnit=idx("ĐVT"),
+    iQty=idx("Số lượng"), iBal=idx("Tồn sau giao dịch"), iParty=idx("Nơi xuất đến / Nhập từ"),
+    iBy=idx("Người thực hiện"), iNote=idx("Ghi chú");
+  const logs=[];
+  for(let r=1;r<rows.length;r++){
+    const row=rows[r]; if(!row||row[iCode]===undefined||row[iCode]===null||row[iCode]==="") continue;
+    let typ=String(row[iType]||"").trim();
+    if(/^xu/i.test(typ)) typ="Xuất"; else if(/^nh/i.test(typ)) typ="Nhập"; else continue;
+    let atVal=iAt>=0? row[iAt] : null, atIso;
+    if(typeof atVal==="number") atIso=xExcelSerialToDate(atVal).toISOString();
+    else if(typeof atVal==="string" && atVal){ const d=new Date(atVal); atIso=isNaN(d)? new Date().toISOString() : d.toISOString(); }
+    else atIso=new Date().toISOString();
+    logs.push({
+      id:"xls_"+(iStt>=0&&row[iStt]!==undefined?row[iStt]:r)+"_"+Math.random().toString(36).slice(2,7),
+      at:atIso, docNo: iDoc>=0? String(row[iDoc]||"") : "", type: typ,
+      code: String(row[iCode]).trim(), name: iName>=0? String(row[iName]||"") : "",
+      unit: iUnit>=0? String(row[iUnit]||"") : "", qty: iQty>=0? (Number(row[iQty])||0) : 0,
+      balanceAfter: iBal>=0? (Number(row[iBal])||0) : 0,
+      party: iParty>=0? String(row[iParty]||"") : "", by: iBy>=0? String(row[iBy]||"") : "",
+      note: iNote>=0? String(row[iNote]||"") : ""
+    });
+  }
+  return logs;
+}
+/* Tai len file Excel that cua nguoi dung -> tu nhan dien danh muc + nhat ky, nhap thang vao he thong */
+async function importInvExcel(fileList){
+  const file=fileList[0]; if(!file) return;
+  let sheets;
+  try{
+    busy(true,"Đang đọc file Excel…");
+    sheets=await parseXlsxFile(file);
+  }catch(e){ busy(false); toast("Lỗi đọc file Excel",esc(e.message),"err"); return; }
+  busy(false);
+
+  let items=null, logs=null, itemsSheet=null, logsSheet=null;
+  const sheetNames=Object.keys(sheets);
+  for(const name of sheetNames){
+    if(!items){ const r=xMapInventorySheet(sheets[name]); if(r&&r.length){ items=r; itemsSheet=name; continue; } }
+    if(!logs){ const r=xMapLogSheet(sheets[name]); if(r){ logs=r; logsSheet=name; } }
+  }
+  if(!items && !logs){
+    alert(`Không nhận diện được cấu trúc file trong ${sheetNames.length} sheet (${sheetNames.join(", ")}).\n\n`+
+      `Cần 1 sheet có cột "Mã hàng" + "Tên hàng" (danh mục tồn kho),\n`+
+      `hoặc 1 sheet có cột "Mã hàng" + "Loại (Nhập/Xuất)" (nhật ký xuất nhập).`);
+    return;
+  }
+  const msg=`Đã đọc file "${esc(file.name)}":\n`+
+    (items? `• Danh mục tồn kho (sheet "${itemsSheet}"): ${items.length} mã hàng\n`:"")+
+    (logs? `• Nhật ký xuất nhập (sheet "${logsSheet}"): ${logs.length} giao dịch (cả Nhập lẫn Xuất)\n`:"")+
+    `\nNhập vào hệ thống? (Mã hàng trùng sẽ được cập nhật đè lên, giao dịch trùng ID sẽ bỏ qua)`;
+  if(!confirm(msg)) return;
+
+  try{
+    busy(true,"Đang nhập dữ liệu…");
+    const CH=200;
+    if(items){
+      for(let i=0;i<items.length;i+=CH){
+        document.getElementById("busyText").textContent=`Đang nhập mã hàng ${Math.min(i+CH,items.length)}/${items.length}…`;
+        await api("bulkImportInventory",{items:items.slice(i,i+CH)});
+      }
+    }
+    if(logs){
+      for(let i=0;i<logs.length;i+=CH){
+        document.getElementById("busyText").textContent=`Đang nhập giao dịch ${Math.min(i+CH,logs.length)}/${logs.length}…`;
+        await api("bulkImportInvLog",{logs:logs.slice(i,i+CH)});
+      }
+    }
+    await loadInventory(false);
+    toast("Đã nhập từ Excel",
+      `${items?items.length+' mã hàng':''}${items&&logs?' · ':''}${logs?logs.length+' giao dịch':''}`,"success");
+  }catch(e){ toast("Lỗi nhập dữ liệu",esc(e.message),"err"); }
+  finally{ busy(false); }
+}
+
 /* ---- Nhap seed 1 lan tu file JSON (Truong phong) ---- */
 async function importInvSeed(fileList){
   const file=fileList[0]; if(!file) return;
