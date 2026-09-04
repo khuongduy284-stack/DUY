@@ -292,7 +292,7 @@
 /* ============================================================
    CAU HINH & TRANG THAI
    ============================================================ */
-const APP_VERSION = "5.1";
+const APP_VERSION = "5.2";
 const NEED_BACKEND = 6;   // Phien ban backend toi thieu
 let BACKEND_VER = null;
 let BACKEND_FAIL = null;   // ten lenh bi may chu tu choi
@@ -558,6 +558,21 @@ function tabsFor(){
   t.push({k:"account",l:"Tài khoản của tôi"});
   return t;
 }
+/* Ve lai trang nhung GIU NGUYEN vi tri con tro / focus cua o dang go
+   (khac voi render() thuong, von thay the toan bo noi dung -> mat focus sau moi ky tu go) */
+function renderKeepFocus(){
+  const act=document.activeElement;
+  const id=act&&act.id;
+  const s=act&&act.selectionStart, en=act&&act.selectionEnd;
+  render();
+  if(id){
+    const el=document.getElementById(id);
+    if(el){
+      el.focus();
+      if(s!=null&&el.setSelectionRange){ try{ el.setSelectionRange(s,en); }catch(e){} }
+    }
+  }
+}
 function render(){
   const nav=document.getElementById("tabNav");
   const tabs=tabsFor();
@@ -678,7 +693,7 @@ function viewTasks(){
     <div class="card">
       <h2>Công việc đã giao <span class="sub">Task → Người → Deadline → Output → Kiểm tra</span></h2>
       <div class="toolbar">
-        <input type="text" placeholder="Tìm công việc / dự án / người..." value="${esc(searchTerms.task||'')}" oninput="searchTerms.task=this.value;render();">
+        <input type="text" id="searchTask" placeholder="Tìm công việc / dự án / người..." value="${esc(searchTerms.task||'')}" oninput="searchTerms.task=this.value;renderKeepFocus();">
         <select onchange="searchTerms.taskPerson=this.value;render();">
           <option value="all">Tất cả nhân sự</option>
           ${people.map(n=>`<option value="${esc(n)}" ${fp===n?'selected':''}>${esc(n)}</option>`).join("")}
@@ -990,7 +1005,7 @@ function viewFiles(){
     <div class="card">
       <h2>Kho file hồ sơ <span class="sub">Bấm vào thư mục để mở / thu gọn</span></h2>
       <div class="toolbar">
-        <input type="text" placeholder="Tìm file / khách hàng / dự án / hạng mục..." value="${esc(searchTerms.file||'')}" oninput="searchTerms.file=this.value;render();">
+        <input type="text" id="searchFile" placeholder="Tìm file / khách hàng / dự án / hạng mục..." value="${esc(searchTerms.file||'')}" oninput="searchTerms.file=this.value;renderKeepFocus();">
         <select onchange="searchTerms.fileMode=this.value;render();">
           <option value="cus" ${mode==='cus'?'selected':''}>📁 Nhóm theo Khách hàng</option>
           <option value="person" ${mode==='person'?'selected':''}>👤 Nhóm theo Nhân viên</option>
@@ -1390,7 +1405,7 @@ function viewProps(){
       <h2>Đề xuất / Ý kiến <span class="sub">Mua thiết bị, vật tư, cải tiến, kiến nghị…</span></h2>
       <div class="notice info">Mọi người đều gửi được đề xuất. Trưởng phòng xem, duyệt hoặc yêu cầu bổ sung — có lưu vết đầy đủ, không thất lạc như nhắn tin.</div>
       <div class="toolbar">
-        <input type="text" placeholder="Tìm theo tiêu đề / nội dung / người đề xuất..." value="${esc(searchTerms.prop||'')}" oninput="searchTerms.prop=this.value;render();">
+        <input type="text" id="searchProp" placeholder="Tìm theo tiêu đề / nội dung / người đề xuất..." value="${esc(searchTerms.prop||'')}" oninput="searchTerms.prop=this.value;renderKeepFocus();">
         <select onchange="searchTerms.propStatus=this.value;render();">
           <option value="all" ${fs==='all'?'selected':''}>Tất cả trạng thái</option>
           ${DX_STATUS.map(s=>`<option value="${s}" ${fs===s?'selected':''}>${s}</option>`).join("")}
@@ -2198,7 +2213,9 @@ function renderInvList(){
     String(it.code).toLowerCase().includes(term)||String(it.name).toLowerCase().includes(term)||
     String(it.desc||"").toLowerCase().includes(term));
   if(fg!=="all") list=list.filter(it=>(it.group||"")===fg);
-  if(fl==="low") list=list.filter(invLow);
+  if(fl==="out") list=list.filter(it=>invStockLevel(it)==="out");
+  else if(fl==="low") list=list.filter(it=>invStockLevel(it)==="low");
+  else if(fl==="attention") list=list.filter(it=>invStockLevel(it)!=="ok");
   const sortKey=searchTerms.invSort||"name";
   list=list.slice().sort((a,b)=>{
     if(sortKey==="qty") return Number(b.currentQty)-Number(a.currentQty);
@@ -2206,16 +2223,20 @@ function renderInvList(){
     if(sortKey==="code") return String(a.code).localeCompare(String(b.code));
     return String(a.name).localeCompare(String(b.name));
   });
+  const outCount=INV_ITEMS.filter(it=>invStockLevel(it)==="out").length;
+  const lowCount2=INV_ITEMS.filter(it=>invStockLevel(it)==="low").length;
   return `
     <div class="toolbar">
-      <input type="text" placeholder="Tìm mã hàng / tên hàng / mô tả..." value="${esc(searchTerms.inv||'')}" oninput="searchTerms.inv=this.value;render();">
+      <input type="text" id="searchInv" placeholder="Tìm theo mã hàng HOẶC tên hàng..." value="${esc(searchTerms.inv||'')}" oninput="searchTerms.inv=this.value;renderKeepFocus();">
       <select onchange="searchTerms.invGroup=this.value;render();">
         <option value="all">Tất cả nhóm</option>
         ${INV_GROUPS.map(g=>`<option value="${g}" ${fg===g?'selected':''}>${g}</option>`).join("")}
       </select>
       <select onchange="searchTerms.invLowOnly=this.value;render();">
-        <option value="all">Tất cả</option>
-        <option value="low" ${fl==='low'?'selected':''}>Chỉ dưới mức tối thiểu</option>
+        <option value="all">Tất cả trạng thái</option>
+        <option value="out" ${fl==='out'?'selected':''}>🔴 Hết hàng (${outCount})</option>
+        <option value="low" ${fl==='low'?'selected':''}>Dưới mức tối thiểu (${lowCount2})</option>
+        <option value="attention" ${fl==='attention'?'selected':''}>Cần chú ý (hết + dưới mức) (${outCount+lowCount2})</option>
       </select>
       <select onchange="searchTerms.invSort=this.value;render();">
         <option value="name">Sắp xếp: Tên hàng</option>
@@ -2224,7 +2245,8 @@ function renderInvList(){
         <option value="qtyAsc">Sắp xếp: Tồn thấp → cao</option>
       </select>
     </div>
-    <div class="detail-row" style="margin-bottom:8px;">Hiển thị ${list.length}/${INV_ITEMS.length} mã hàng</div>
+    <div class="detail-row" style="margin-bottom:8px;">Hiển thị ${list.length}/${INV_ITEMS.length} mã hàng
+      ${outCount?` · <b style="color:var(--red);">${outCount} hết hàng</b>`:''}${lowCount2?` · ${lowCount2} dưới mức tối thiểu`:''}</div>
     ${list.length?`<table><thead><tr><th>Mã hàng</th><th>Tên hàng</th><th>Nhóm</th><th>Vị trí</th><th>Tồn hiện tại</th><th>Tồn tối thiểu</th><th></th></tr></thead><tbody>
       ${list.map(it=>{
         const lv=invStockLevel(it), chg=invChanged(it);
@@ -2252,7 +2274,7 @@ function renderInvLog(){
   list.sort((a,b)=>String(b.at||"").localeCompare(String(a.at||"")));
   return `
     <div class="toolbar">
-      <input type="text" placeholder="Tìm mã hàng / người thực hiện / số phiếu..." value="${esc(searchTerms.invL||'')}" oninput="searchTerms.invL=this.value;render();">
+      <input type="text" id="searchInvL" placeholder="Tìm mã hàng / người thực hiện / số phiếu..." value="${esc(searchTerms.invL||'')}" oninput="searchTerms.invL=this.value;renderKeepFocus();">
       <select onchange="searchTerms.invLType=this.value;render();">
         <option value="all">Nhập &amp; Xuất</option>
         <option value="Nhập" ${ft==='Nhập'?'selected':''}>Chỉ Nhập</option>
@@ -2555,7 +2577,7 @@ async function delInvItem(code){
 function exportInvCsv(){
   const rows=INV_ITEMS.map(it=>({code:it.code,name:it.name,desc:it.desc,unit:it.unit,group:it.group,
     location:it.location,opening:it.openingQty,in:it.totalIn,out:it.totalOut,current:it.currentQty,
-    min:it.minQty,warn:invLow(it)?"CẦN NHẬP THÊM":""}));
+    min:it.minQty,warn:invStockLevel(it)==="out"?"HẾT HÀNG":(invStockLevel(it)==="low"?"CẦN NHẬP THÊM":"")}));
   const esc2=v=>{v=(v===undefined||v===null)?"":String(v);return /[",\\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
   const headers=[{key:"code",label:"Mã hàng"},{key:"name",label:"Tên hàng"},{key:"desc",label:"Mô tả"},
     {key:"unit",label:"ĐVT"},{key:"group",label:"Nhóm"},{key:"location",label:"Vị trí"},
@@ -3899,7 +3921,7 @@ function viewProjects(){
 
   const head=`
     <div class="toolbar">
-      <input type="text" placeholder="Tìm dự án / khách hàng / PIC..." value="${esc(searchTerms.proj||'')}" oninput="searchTerms.proj=this.value;render();">
+      <input type="text" id="searchProj" placeholder="Tìm dự án / khách hàng / PIC..." value="${esc(searchTerms.proj||'')}" oninput="searchTerms.proj=this.value;renderKeepFocus();">
       <select onchange="searchTerms.projMode=this.value;render();">
         <option value="cus" ${mode==='cus'?'selected':''}>🏢 Nhóm theo Khách hàng</option>
         <option value="person" ${mode==='person'?'selected':''}>👤 Nhóm theo Nhân viên</option>
