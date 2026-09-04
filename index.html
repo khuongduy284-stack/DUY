@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<!-- saved from url=(0043)file:///C:/Users/HP/Downloads/index_13.html -->
-<html lang="vi"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
-
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VNT · Quản lý Quy trình Kỹ thuật Điện</title>
 <meta name="theme-color" content="#0b1b2b">
@@ -208,7 +208,7 @@
     td::before{content:attr(data-label);font-weight:800;color:var(--text-light);font-size:10.5px;text-transform:uppercase;}
   }
 </style>
-<script src="./index_files/jszip.min.js.download"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
 /* Neu CDN chinh bi chan, tu dong thu cac nguon khac */
 (function(){
@@ -253,7 +253,7 @@
       <button class="btn primary wide" id="lgBtn" onclick="doLogin()">Đăng nhập</button>
       <div class="login-hint">
         Chưa có tài khoản? Liên hệ Trưởng phòng để được cấp.<br>
-        <a href="file:///C:/Users/HP/Downloads/index_13.html#" onclick="showSetup();return false;" style="color:var(--accent);">Đổi địa chỉ máy chủ</a>
+        <a href="#" onclick="showSetup();return false;" style="color:var(--accent);">Đổi địa chỉ máy chủ</a>
       </div>
     </div>
   </div>
@@ -292,8 +292,8 @@
 /* ============================================================
    CAU HINH & TRANG THAI
    ============================================================ */
-const APP_VERSION = "3.9";
-const NEED_BACKEND = 4;   // Phien ban backend toi thieu
+const APP_VERSION = "4.0";
+const NEED_BACKEND = 5;   // Phien ban backend toi thieu
 let BACKEND_VER = null;
 let BACKEND_FAIL = null;   // ten lenh bi may chu tu choi
 const SRV_KEY = "vnt_app_server";
@@ -305,6 +305,10 @@ let PROJECTS = [];        // toan bo du an
 let META = {staff:[], config:null};
 let GTASKS = [];   // cong viec khong thuoc du an
 let PROPS  = [];   // de xuat / y kien
+let INV_ITEMS = [];   // danh muc ton kho
+let INV_LOGS  = [];   // nhat ky xuat nhap kho
+let invLoaded=false, invLoading=false;
+const INV_GROUPS=["Nguyên vật liệu","Công cụ dụng cụ","Hàng hóa","Khác"];
 const DX_TYPES=["Mua thiết bị / vật tư","Sửa chữa / thay thế","Cải tiến (Kaizen)","Đào tạo / Học tập","Bổ sung nhân lực","Kiến nghị khác"];
 const DX_URG=["Bình thường","Cần sớm","Gấp"];
 const DX_STATUS=["Chờ duyệt","Đã duyệt","Đã mua","Cần bổ sung","Từ chối"];
@@ -545,6 +549,7 @@ function tabsFor(){
   t.push({k:"mywork",l:"Việc của tôi"});
   t.push({k:"files",l:"Kho file"});
   t.push({k:"props",l:"Đề xuất"});
+  t.push({k:"inv",l:"Kho vật tư"});
   if(isBoss()) t.push({k:"reports",l:"Báo cáo"});
   if(isBoss()) t.push({k:"staff",l:"Nhân viên"});
   if(isBoss()) t.push({k:"users",l:"Tài khoản"});
@@ -607,6 +612,7 @@ function go(k){
     CFG_DIRTY=false;
   }
   activeTab=k;render();
+  if(k==="inv" && !invLoaded) loadInventory();
 }
 
 function countAlerts(){
@@ -1985,6 +1991,325 @@ async function exportPropsExcel(onlyApproved){
 }
 
 /* ============================================================
+   KHO VAT TU (TON KHO / NHAP XUAT KHO) - dua tu file Excel v5
+   ============================================================ */
+async function loadInventory(showT){
+  if(invLoading) return;
+  invLoading=true; render();
+  try{
+    const d=await api("getInventory");
+    INV_ITEMS=d.items||[]; INV_LOGS=d.logs||[];
+    invLoaded=true;
+    if(showT) toast("Đã tải kho vật tư",`${INV_ITEMS.length} mã hàng · ${INV_LOGS.length} giao dịch`,"success");
+  }catch(e){ toast("Lỗi tải kho vật tư",esc(e.message),"err"); }
+  finally{ invLoading=false; render(); }
+}
+function invLow(it){ return Number(it.minQty)>0 && Number(it.currentQty)<Number(it.minQty); }
+function invChanged(it){ return Number(it.currentQty)!==Number(it.openingQty); }
+function findInvItem(code){ return INV_ITEMS.find(x=>x.code===code); }
+
+function viewInventory(){
+  if(invLoading){
+    return `<div class="card"><div class="empty-state"><div class="icon">⏳</div>Đang tải kho vật tư…</div></div>`;
+  }
+  if(!invLoaded){
+    return `<div class="card"><div class="empty-state"><div class="icon">📦</div>
+      <button class="btn primary" onclick="loadInventory(true)">Tải dữ liệu kho vật tư</button></div></div>`;
+  }
+  const sub=searchTerms.invSub||"list";
+  const lowCount=INV_ITEMS.filter(invLow).length;
+  const todayTx=INV_LOGS.filter(l=>(l.at||"").slice(0,10)===todayStr()).length;
+  const totalItems=INV_ITEMS.length;
+
+  return `
+    <div class="grid-kpi">
+      <div class="kpi-box"><div class="num">${totalItems}</div><div class="lbl">Tổng mã hàng</div></div>
+      <div class="kpi-box ${lowCount?'warn':'ok'}"><div class="num">${lowCount}</div><div class="lbl">Dưới mức tồn tối thiểu</div></div>
+      <div class="kpi-box"><div class="num">${INV_LOGS.length}</div><div class="lbl">Tổng giao dịch</div></div>
+      <div class="kpi-box mid"><div class="num">${todayTx}</div><div class="lbl">Giao dịch hôm nay</div></div>
+    </div>
+    <div class="card">
+      <h2>Kho vật tư điện <span class="sub">Danh mục + Nhập/Xuất kho + Nhật ký — thay thế file Excel</span></h2>
+      <div class="subtabs">
+        <button class="${sub==='list'?'active':''}" onclick="searchTerms.invSub='list';render();">📋 Danh mục tồn kho</button>
+        <button class="${sub==='log'?'active':''}" onclick="searchTerms.invSub='log';render();">📜 Nhật ký xuất nhập</button>
+      </div>
+      <div class="toolbar">
+        <button class="btn success" onclick="invTxModal('Nhập')">⬇ Nhập kho</button>
+        <button class="btn danger" onclick="invTxModal('Xuất')">⬆ Xuất kho</button>
+        <button class="btn" onclick="editInvItem()">+ Thêm mã hàng mới</button>
+        <div class="spacer"></div>
+        <button class="btn" onclick="loadInventory(true)">🔄 Làm mới</button>
+        <button class="btn" onclick="exportInvCsv()">Xuất CSV</button>
+        ${isBoss()?`<label class="btn" style="cursor:pointer;">📥 Nhập seed JSON<input type="file" accept=".json" style="display:none" onchange="importInvSeed(this.files)"></label>`:''}
+      </div>
+      ${sub==='list'?renderInvList():renderInvLog()}
+    </div>`;
+}
+function renderInvList(){
+  const term=(searchTerms.inv||"").toLowerCase();
+  const fg=searchTerms.invGroup||"all";
+  const fl=searchTerms.invLowOnly||"all";
+  let list=INV_ITEMS.filter(it=>!term||
+    String(it.code).toLowerCase().includes(term)||String(it.name).toLowerCase().includes(term)||
+    String(it.desc||"").toLowerCase().includes(term));
+  if(fg!=="all") list=list.filter(it=>(it.group||"")===fg);
+  if(fl==="low") list=list.filter(invLow);
+  const sortKey=searchTerms.invSort||"name";
+  list=list.slice().sort((a,b)=>{
+    if(sortKey==="qty") return Number(b.currentQty)-Number(a.currentQty);
+    if(sortKey==="qtyAsc") return Number(a.currentQty)-Number(b.currentQty);
+    if(sortKey==="code") return String(a.code).localeCompare(String(b.code));
+    return String(a.name).localeCompare(String(b.name));
+  });
+  return `
+    <div class="toolbar">
+      <input type="text" placeholder="Tìm mã hàng / tên hàng / mô tả..." value="${esc(searchTerms.inv||'')}" oninput="searchTerms.inv=this.value;render();">
+      <select onchange="searchTerms.invGroup=this.value;render();">
+        <option value="all">Tất cả nhóm</option>
+        ${INV_GROUPS.map(g=>`<option value="${g}" ${fg===g?'selected':''}>${g}</option>`).join("")}
+      </select>
+      <select onchange="searchTerms.invLowOnly=this.value;render();">
+        <option value="all">Tất cả</option>
+        <option value="low" ${fl==='low'?'selected':''}>Chỉ dưới mức tối thiểu</option>
+      </select>
+      <select onchange="searchTerms.invSort=this.value;render();">
+        <option value="name">Sắp xếp: Tên hàng</option>
+        <option value="code">Sắp xếp: Mã hàng</option>
+        <option value="qty">Sắp xếp: Tồn cao → thấp</option>
+        <option value="qtyAsc">Sắp xếp: Tồn thấp → cao</option>
+      </select>
+    </div>
+    <div class="detail-row" style="margin-bottom:8px;">Hiển thị ${list.length}/${INV_ITEMS.length} mã hàng</div>
+    ${list.length?`<table><thead><tr><th>Mã hàng</th><th>Tên hàng</th><th>Nhóm</th><th>Vị trí</th><th>Tồn hiện tại</th><th>Tồn tối thiểu</th><th></th></tr></thead><tbody>
+      ${list.map(it=>{
+        const low=invLow(it), chg=invChanged(it);
+        return `<tr class="${low?'row-warn':''}" style="${!low&&chg?'background:#fffef2;':''}">
+          <td data-label="Mã hàng"><b>${esc(it.code)}</b></td>
+          <td data-label="Tên hàng">${esc(it.name)}${it.desc?`<div class="detail-row">${esc(it.desc.slice(0,60))}</div>`:''}</td>
+          <td data-label="Nhóm">${it.group?`<span class="badge approved">${esc(it.group)}</span>`:'—'}</td>
+          <td data-label="Vị trí">${esc(it.location||'—')}</td>
+          <td data-label="Tồn hiện tại"><b style="font-size:14px;${low?'color:var(--red);':''}">${fmtNum(it.currentQty)}</b> ${esc(it.unit||'')}</td>
+          <td data-label="Tồn tối thiểu">${it.minQty?fmtNum(it.minQty)+' '+esc(it.unit||''):'—'}
+            ${low?`<span class="badge crit">CẦN NHẬP THÊM</span>`:''}</td>
+          <td data-label=""><button class="btn small" onclick="viewInvItem('${esc(it.code)}')">Chi tiết</button></td>
+        </tr>`;
+      }).join("")}
+    </tbody></table>`:`<div class="empty-state"><div class="icon">📦</div>Không có mã hàng nào khớp.</div>`}`;
+}
+function renderInvLog(){
+  const term=(searchTerms.invL||"").toLowerCase();
+  const ft=searchTerms.invLType||"all";
+  let list=INV_LOGS.slice().filter(l=>!term||
+    String(l.code).toLowerCase().includes(term)||String(l.name).toLowerCase().includes(term)||
+    String(l.by||"").toLowerCase().includes(term)||String(l.docNo||"").toLowerCase().includes(term));
+  if(ft!=="all") list=list.filter(l=>l.type===ft);
+  list.sort((a,b)=>String(b.at||"").localeCompare(String(a.at||"")));
+  return `
+    <div class="toolbar">
+      <input type="text" placeholder="Tìm mã hàng / người thực hiện / số phiếu..." value="${esc(searchTerms.invL||'')}" oninput="searchTerms.invL=this.value;render();">
+      <select onchange="searchTerms.invLType=this.value;render();">
+        <option value="all">Nhập &amp; Xuất</option>
+        <option value="Nhập" ${ft==='Nhập'?'selected':''}>Chỉ Nhập</option>
+        <option value="Xuất" ${ft==='Xuất'?'selected':''}>Chỉ Xuất</option>
+      </select>
+    </div>
+    <div class="detail-row" style="margin-bottom:8px;">${list.length} giao dịch</div>
+    ${list.length?`<table><thead><tr><th>Ngày giờ</th><th>Số phiếu</th><th>Loại</th><th>Mã hàng</th><th>SL</th><th>Tồn sau GD</th><th>Nơi đến/từ</th><th>Người TH</th><th></th></tr></thead><tbody>
+      ${list.map(l=>`<tr>
+        <td data-label="Ngày giờ">${l.at?new Date(l.at).toLocaleString('vi-VN'):''}</td>
+        <td data-label="Số phiếu">${esc(l.docNo||'')}</td>
+        <td data-label="Loại"><span class="badge ${l.type==='Nhập'?'released':'crit'}">${esc(l.type)}</span></td>
+        <td data-label="Mã hàng"><b>${esc(l.code)}</b><div class="detail-row">${esc((l.name||'').slice(0,40))}</div></td>
+        <td data-label="SL">${fmtNum(l.qty)} ${esc(l.unit||'')}</td>
+        <td data-label="Tồn sau GD">${fmtNum(l.balanceAfter)}</td>
+        <td data-label="Nơi đến/từ">${esc(l.party||'—')}</td>
+        <td data-label="Người TH">${esc(l.by||'')}</td>
+        <td data-label="">${isBoss()?`<button class="btn small danger" onclick="delInvLog('${l.id}')">Xoá</button>`:''}</td>
+      </tr>`).join("")}
+    </tbody></table>`:`<div class="empty-state"><div class="icon">📜</div>Chưa có giao dịch nào.</div>`}`;
+}
+function fmtNum(n){ n=Number(n)||0; return n%1===0? n.toLocaleString('vi-VN') : n.toLocaleString('vi-VN',{maximumFractionDigits:2}); }
+
+/* ---- Phieu Nhap / Xuat kho ---- */
+function invTxModal(type){
+  const names=INV_ITEMS.map(i=>i.code);
+  openModalHtml(`
+    <h3>${type==='Nhập'?'⬇ PHIẾU NHẬP KHO':'⬆ PHIẾU XUẤT KHO'}</h3>
+    <div class="form-row">
+      <div class="fld full"><label>Mã hàng ${type==='Nhập'?'(gõ mã mới nếu chưa có sẽ tự thêm)':'*'}</label>
+        <input type="text" id="tx_code" list="invCodeList" oninput="invAutoFill()" placeholder="Gõ hoặc chọn mã hàng...">
+        <datalist id="invCodeList">${names.map(c=>`<option value="${esc(c)}"></option>`).join("")}</datalist></div>
+      <div class="fld full"><label>Tên hàng</label><input type="text" id="tx_name" placeholder="Tự điền nếu chọn mã có sẵn"></div>
+      <div class="fld"><label>ĐVT</label><input type="text" id="tx_unit" value="Cái"></div>
+      <div class="fld"><label>Số lượng *</label><input type="number" id="tx_qty" min="0" step="any"></div>
+      <div class="fld full" id="tx_curWrap" style="display:none;"><div class="detail-row" id="tx_cur"></div></div>
+      <div class="fld full"><label>${type==='Nhập'?'Nhập từ (Nhà cung cấp / Nguồn)':'Xuất đến (Bộ phận / Công trình / Dự án)'}</label>
+        <input type="text" id="tx_party" placeholder="${type==='Nhập'?'VD: Cty ABC':'VD: Dự án Máy chiết rót, hoặc Tổ bảo trì'}"></div>
+      <div class="fld"><label>Người thực hiện</label><input type="text" id="tx_by" value="${esc(ME.name)}"></div>
+      <div class="fld full"><label>Ghi chú</label><input type="text" id="tx_note"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Huỷ</button>
+      <button class="btn ${type==='Nhập'?'success':'danger'}" onclick="submitInvTx('${type}')">✓ Ghi sổ ${type}</button></div>`);
+}
+function invAutoFill(){
+  const code=document.getElementById("tx_code").value.trim();
+  const it=findInvItem(code);
+  const wrap=document.getElementById("tx_curWrap"), cur=document.getElementById("tx_cur");
+  if(it){
+    document.getElementById("tx_name").value=it.name;
+    document.getElementById("tx_unit").value=it.unit||"Cái";
+    if(wrap){ wrap.style.display="block"; cur.innerHTML=`Tồn hiện tại: <b>${fmtNum(it.currentQty)} ${esc(it.unit||'')}</b>${invLow(it)?' <span class="badge crit">Dưới mức tối thiểu</span>':''}`; }
+  } else if(wrap){ wrap.style.display="none"; }
+}
+async function submitInvTx(type){
+  const code=document.getElementById("tx_code").value.trim();
+  const qty=Number(document.getElementById("tx_qty").value);
+  if(!code){ alert("Vui lòng nhập/chọn mã hàng."); return; }
+  if(!qty||qty<=0){ alert("Số lượng phải lớn hơn 0."); return; }
+  const tx={code, name:document.getElementById("tx_name").value.trim(), unit:document.getElementById("tx_unit").value.trim()||"Cái",
+    qty, type, party:document.getElementById("tx_party").value.trim(), by:document.getElementById("tx_by").value.trim()||ME.name,
+    note:document.getElementById("tx_note").value.trim()};
+  try{
+    busy(true,"Đang ghi sổ…");
+    const d=await api("recordInventoryTx",{tx});
+    const i=INV_ITEMS.findIndex(x=>x.code===code);
+    if(i>=0) INV_ITEMS[i]=d.item; else INV_ITEMS.push(d.item);
+    INV_LOGS.push(d.log);
+    closeModal(); render();
+    if(d.warning) toast("Đã ghi sổ — có cảnh báo",esc(d.warning),"warn");
+    else toast("Đã ghi sổ "+type,`${code} · ${fmtNum(qty)} ${tx.unit} · Số phiếu ${d.log.docNo}`,"success");
+  }catch(e){ toast("Lỗi ghi sổ",esc(e.message),"err"); }
+  finally{ busy(false); }
+}
+async function delInvLog(id){
+  if(!confirm("Xoá giao dịch này? Tồn kho sẽ được hoàn tác lại như trước giao dịch.")) return;
+  try{
+    busy(true,"Đang xoá…");
+    await api("deleteInvLog",{id});
+    await loadInventory(false);
+    toast("Đã xoá giao dịch","Tồn kho đã hoàn tác.","warn");
+  }catch(e){ toast("Lỗi",esc(e.message),"err"); }
+  finally{ busy(false); }
+}
+
+/* ---- Xem / Sua thong tin ma hang ---- */
+function viewInvItem(code){
+  const it=findInvItem(code); if(!it) return;
+  const logs=INV_LOGS.filter(l=>l.code===code).sort((a,b)=>String(b.at||"").localeCompare(String(a.at||"")));
+  openModalHtml(`
+    <h3>${esc(it.code)} ${invLow(it)?'<span class="badge crit">CẦN NHẬP THÊM</span>':''}</h3>
+    <div class="metric-grid" style="margin-bottom:12px;">
+      <div class="metric-cell"><div class="mv">${fmtNum(it.currentQty)}</div><div class="ml">Tồn hiện tại (${esc(it.unit||'')})</div></div>
+      <div class="metric-cell"><div class="mv">${fmtNum(it.totalIn)}</div><div class="ml">Tổng nhập</div></div>
+      <div class="metric-cell"><div class="mv">${fmtNum(it.totalOut)}</div><div class="ml">Tổng xuất</div></div>
+      <div class="metric-cell"><div class="mv">${fmtNum(it.minQty)}</div><div class="ml">Tồn tối thiểu</div></div>
+    </div>
+    <div style="font-size:12.5px;color:var(--text-light);line-height:1.8;margin-bottom:12px;">
+      <div><b>Tên hàng:</b> ${esc(it.name)}</div>
+      ${it.desc?`<div><b>Mô tả:</b> ${esc(it.desc)}</div>`:''}
+      <div><b>Nhóm:</b> ${esc(it.group||'—')} · <b>Vị trí:</b> ${esc(it.location||'—')} · <b>Nguồn gốc:</b> ${esc(it.origin||'—')}</div>
+      <div><b>Tồn đầu kỳ:</b> ${fmtNum(it.openingQty)} ${esc(it.unit||'')}</div>
+    </div>
+    <div class="flow-title" style="font-size:12px;font-weight:800;margin:10px 0 6px;">LỊCH SỬ GIAO DỊCH (${logs.length})</div>
+    ${logs.length?`<table><thead><tr><th>Ngày</th><th>Loại</th><th>SL</th><th>Tồn sau</th><th>Người TH</th></tr></thead><tbody>
+      ${logs.slice(0,20).map(l=>`<tr><td data-label="Ngày">${l.at?new Date(l.at).toLocaleDateString('vi-VN'):''}</td>
+      <td data-label="Loại"><span class="badge ${l.type==='Nhập'?'released':'crit'}">${esc(l.type)}</span></td>
+      <td data-label="SL">${fmtNum(l.qty)}</td><td data-label="Tồn sau">${fmtNum(l.balanceAfter)}</td>
+      <td data-label="Người TH">${esc(l.by||'')}</td></tr>`).join("")}
+    </tbody></table>${logs.length>20?`<div class="detail-row" style="margin-top:6px;">…và ${logs.length-20} giao dịch khác</div>`:''}`:`<div class="detail-row">Chưa có giao dịch.</div>`}
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Đóng</button>
+      <button class="btn" onclick="editInvItem('${esc(code)}')">Sửa thông tin</button>
+      ${(isBoss()||ME.role==="leader")?`<button class="btn danger" onclick="delInvItem('${esc(code)}')">Xoá mã hàng</button>`:''}
+    </div>`);
+}
+function editInvItem(code){
+  const it=code?findInvItem(code):{code:"",name:"",desc:"",unit:"Cái",group:"",origin:"",location:"",minQty:0,openingQty:0};
+  openModalHtml(`
+    <h3>${code?'Sửa thông tin mã hàng':'Thêm mã hàng mới'}</h3>
+    <div class="form-row">
+      <div class="fld"><label>Mã hàng *</label><input type="text" id="it_code" value="${esc(it.code)}" ${code?'disabled':''}></div>
+      <div class="fld"><label>ĐVT</label><input type="text" id="it_unit" value="${esc(it.unit||'Cái')}"></div>
+      <div class="fld full"><label>Tên hàng *</label><input type="text" id="it_name" value="${esc(it.name)}"></div>
+      <div class="fld full"><label>Mô tả</label><textarea id="it_desc" rows="2">${esc(it.desc||'')}</textarea></div>
+      <div class="fld"><label>Nhóm VTHH</label><select id="it_group">
+        <option value="">—</option>${INV_GROUPS.map(g=>`<option ${it.group===g?'selected':''}>${g}</option>`).join("")}</select></div>
+      <div class="fld"><label>Nguồn gốc</label><input type="text" id="it_origin" value="${esc(it.origin||'')}"></div>
+      <div class="fld"><label>Vị trí lưu kho</label><input type="text" id="it_location" value="${esc(it.location||'')}"></div>
+      <div class="fld"><label>Tồn tối thiểu (cảnh báo)</label><input type="number" id="it_minqty" value="${it.minQty||0}"></div>
+      ${!code?`<div class="fld"><label>Tồn đầu kỳ</label><input type="number" id="it_opening" value="0"></div>`:''}
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Huỷ</button>
+      <button class="btn primary" onclick="saveInvItem('${code||''}')">Lưu</button></div>`);
+}
+async function saveInvItem(code){
+  const c=document.getElementById("it_code").value.trim();
+  const n=document.getElementById("it_name").value.trim();
+  if(!c||!n){ alert("Nhập đủ mã hàng và tên hàng."); return; }
+  const item={code:c, name:n, desc:document.getElementById("it_desc").value.trim(),
+    unit:document.getElementById("it_unit").value.trim()||"Cái", group:document.getElementById("it_group").value,
+    origin:document.getElementById("it_origin").value.trim(), location:document.getElementById("it_location").value.trim(),
+    minQty:Number(document.getElementById("it_minqty").value)||0};
+  const opEl=document.getElementById("it_opening");
+  if(opEl) item.openingQty=Number(opEl.value)||0;
+  try{
+    busy(true,"Đang lưu…");
+    const d=await api("saveInventoryItem",{item});
+    INV_ITEMS=d.items;
+    closeModal(); render(); toast("Đã lưu",esc(c),"success");
+  }catch(e){ toast("Lỗi",esc(e.message),"err"); }
+  finally{ busy(false); }
+}
+async function delInvItem(code){
+  if(!confirm(`Xoá mã hàng "${code}" khỏi danh mục? (Lịch sử giao dịch vẫn được giữ lại)`)) return;
+  try{
+    busy(true,"Đang xoá…");
+    await api("deleteInventoryItem",{code});
+    INV_ITEMS=INV_ITEMS.filter(x=>x.code!==code);
+    closeModal(); render(); toast("Đã xoá mã hàng","","warn");
+  }catch(e){ toast("Lỗi",esc(e.message),"err"); }
+  finally{ busy(false); }
+}
+function exportInvCsv(){
+  const rows=INV_ITEMS.map(it=>({code:it.code,name:it.name,desc:it.desc,unit:it.unit,group:it.group,
+    location:it.location,opening:it.openingQty,in:it.totalIn,out:it.totalOut,current:it.currentQty,
+    min:it.minQty,warn:invLow(it)?"CẦN NHẬP THÊM":""}));
+  const esc2=v=>{v=(v===undefined||v===null)?"":String(v);return /[",\\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
+  const headers=[{key:"code",label:"Mã hàng"},{key:"name",label:"Tên hàng"},{key:"desc",label:"Mô tả"},
+    {key:"unit",label:"ĐVT"},{key:"group",label:"Nhóm"},{key:"location",label:"Vị trí"},
+    {key:"opening",label:"Tồn đầu kỳ"},{key:"in",label:"Tổng nhập"},{key:"out",label:"Tổng xuất"},
+    {key:"current",label:"Tồn hiện tại"},{key:"min",label:"Tồn tối thiểu"},{key:"warn",label:"Cảnh báo"}];
+  const csv="\\uFEFF"+[headers.map(h=>esc2(h.label)).join(",")].concat(rows.map(r=>headers.map(h=>esc2(r[h.key])).join(","))).join("\\n");
+  dlBlob(new Blob([csv],{type:"text/csv;charset=utf-8;"}),"ton-kho-"+todayStr()+".csv");
+}
+/* ---- Nhap seed 1 lan tu file JSON (Truong phong) ---- */
+async function importInvSeed(fileList){
+  const file=fileList[0]; if(!file) return;
+  try{
+    busy(true,"Đang đọc file…");
+    const text=await file.text();
+    const seed=JSON.parse(text);
+    if(!confirm(`File có ${(seed.items||[]).length} mã hàng và ${(seed.logs||[]).length} giao dịch.\\n\\nNhập vào hệ thống? (Mã hàng trùng sẽ được cập nhật đè lên)`)){ busy(false); return; }
+    const items=seed.items||[], logs=seed.logs||[];
+    const CH=200;
+    for(let i=0;i<items.length;i+=CH){
+      document.getElementById("busyText").textContent=`Đang nhập mã hàng ${Math.min(i+CH,items.length)}/${items.length}…`;
+      await api("bulkImportInventory",{items:items.slice(i,i+CH)});
+    }
+    for(let i=0;i<logs.length;i+=CH){
+      document.getElementById("busyText").textContent=`Đang nhập giao dịch ${Math.min(i+CH,logs.length)}/${logs.length}…`;
+      await api("bulkImportInvLog",{logs:logs.slice(i,i+CH)});
+    }
+    await loadInventory(false);
+    toast("Đã nhập dữ liệu",`${items.length} mã hàng · ${logs.length} giao dịch`,"success");
+  }catch(e){ toast("Lỗi nhập dữ liệu",esc(e.message),"err"); }
+  finally{ busy(false); }
+}
+
+/* ============================================================
    NHAN VIEN (Truong phong)
    ============================================================ */
 function staffWork(name){
@@ -2180,6 +2505,14 @@ function viewGuide(){
       3. Đạt → <b>Duyệt → Gate tiếp</b>. Chưa đạt → <b>↩ Yêu cầu gửi lại</b> kèm nhận xét (giữ nguyên Gate).<br>
       4. Riêng G4: <b>PASS</b> sang G5, hoặc <b>REVISE</b> quay về G3.</div>
     <div class="notice"><b>Nguyên tắc:</b> AN TOÀN → CHẤT LƯỢNG → ĐỘ TIN CẬY → TIẾN ĐỘ → CHI PHÍ. Không dùng hồ sơ WIP để sản xuất.</div>
+  </div>
+  <div class="card">
+    <h2>📦 Kho vật tư điện</h2>
+    <div class="notice info">Thay thế file Excel quản lý tồn kho — mọi thao tác lưu trực tiếp lên máy chủ, không cần macro.<br>
+      <b>Nhập kho:</b> chọn mã hàng có sẵn hoặc gõ mã mới (tự thêm vào danh mục) → nhập số lượng → Ghi sổ.<br>
+      <b>Xuất kho:</b> chọn mã hàng → nhập số lượng → Ghi sổ. Nếu xuất vượt tồn hiện có, hệ thống vẫn cho ghi nhưng cảnh báo rõ.<br>
+      <b>Số phiếu</b> tự sinh theo ngày (VD: 20260904-001), không cần tự đặt.<br>
+      Mọi giao dịch đều lưu vào <b>Nhật ký xuất nhập</b> để tra cứu lịch sử. Xoá 1 giao dịch sẽ tự hoàn tác đúng số lượng đó vào tồn kho.</div>
   </div>`;
 }
 function viewAccount(){
@@ -2950,6 +3283,5 @@ function viewMyWork(){
     </div>`;
 }
 </script>
-
-
-</body></html>
+</body>
+</html>
