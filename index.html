@@ -292,8 +292,8 @@
 /* ============================================================
    CAU HINH & TRANG THAI
    ============================================================ */
-const APP_VERSION = "4.2";
-const NEED_BACKEND = 5;   // Phien ban backend toi thieu
+const APP_VERSION = "5.0";
+const NEED_BACKEND = 6;   // Phien ban backend toi thieu
 let BACKEND_VER = null;
 let BACKEND_FAIL = null;   // ten lenh bi may chu tu choi
 const SRV_KEY = "vnt_app_server";
@@ -1697,6 +1697,134 @@ function cloneProp(id){
 }
 
 /* ============================================================
+   XUAT FILE TON KHO - GIU NGUYEN KHUNG FILE GOC (mau, font, o gop)
+   ============================================================ */
+function xEscInline(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function xColLetters(n){ let s="";n++; while(n>0){const m=(n-1)%26; s=String.fromCharCode(65+m)+s; n=Math.floor((n-1)/26);} return s; }
+/* Dung 1 dong <row> tu {colIdx: value} + {colIdx: styleId} */
+function xBuildRow(rowNum, values, styles, ht, outlineLevel){
+  let cells="";
+  for(const k in values){
+    const v=values[k];
+    if(v===null||v===undefined||v==="") continue;
+    const ref=xColLetters(Number(k))+rowNum;
+    const s=styles[k]!==undefined? styles[k] : "0";
+    if(typeof v==="number"&&isFinite(v)){
+      cells+=`<c r="${ref}" s="${s}"><v>${v}</v></c>`;
+    }else{
+      cells+=`<c r="${ref}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${xEscInline(v)}</t></is></c>`;
+    }
+  }
+  const htAttr=ht? ` ht="${ht}" customHeight="1"` : "";
+  const olAttr=outlineLevel? ` outlineLevel="${outlineLevel}"` : "";
+  return `<row r="${rowNum}" spans="1:${27}"${htAttr}${olAttr}>${cells}</row>`;
+}
+function rn(v){ return Math.round((Number(v)||0)*100)/100; }
+async function buildAccountingReportXlsx(template, items){
+  if(typeof JSZip==="undefined") throw new Error("Chưa tải được thư viện nén file.");
+  const zip=new JSZip();
+
+  // 1) Cac phan KHONG DOI: sao chep byte-nguyen-ven tu file goc da luu trong template
+  zip.file("[Content_Types].xml", template.contentTypesXml);
+  zip.folder("_rels").file(".rels", template.rootRelsXml);
+  zip.folder("xl").file("workbook.xml", template.workbookXml);
+  zip.folder("xl").folder("_rels").file("workbook.xml.rels", template.workbookRelsXml);
+  zip.folder("xl").file("styles.xml", template.stylesXml);
+  if(template.themeXml) zip.folder("xl").folder("theme").file("theme1.xml", template.themeXml);
+  // [Content_Types].xml / workbook.xml.rels cua file goc co the van tham chieu toi sharedStrings.xml
+  // -> luon dinh kem 1 bang RONG hop le (du lieu cua ta dung inlineStr nen khong can bang nay,
+  //    nhung phai co mat de Excel khong bao loi hong file khi mo)
+  zip.folder("xl").file("sharedStrings.xml",
+    '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="0" uniqueCount="0"></sst>');
+
+  // 2) Dung lai sheetData: header rows (nguyen ban, tu snapshot) + Ma kho + Ten kho + du lieu + Tong
+  let sheetDataXml="";
+  (template.headerRows||[]).forEach(row=>{
+    const values={}, styles={};
+    for(const k in row.cells){ values[k]=row.cells[k].value; styles[k]=row.cells[k].style; }
+    sheetDataXml+=xBuildRow(row.r, values, styles, row.ht, row.outlineLevel);
+  });
+
+  // Tinh tong hop cho dong Ma kho / Ten kho
+  let sumOpen=0,sumInMua=0,sumInTra=0,sumInTP=0,sumInCL=0,sumInKhac=0,sumOut=0,sumOutMua=0,sumOutBan=0,sumOutSX=0,sumOutKhac=0,sumCur=0,sumTransfer=0;
+  items.forEach(it=>{
+    sumOpen+=Number(it.openingQty)||0;
+    sumInMua+=Number(it.inMua)||0; sumInTra+=Number(it.inTra)||0; sumInTP+=Number(it.inTP)||0;
+    sumInCL+=Number(it.inCL)||0; sumInKhac+=Number(it.inKhac)||0;
+    sumOutMua+=Number(it.outMua)||0; sumOutBan+=Number(it.outBan)||0; sumOutSX+=Number(it.outSX)||0; sumOutKhac+=Number(it.outKhac)||0;
+    sumTransfer+=Number(it.transferPending)||0;
+  });
+  const sumIn=sumInMua+sumInTra+sumInTP+sumInCL+sumInKhac;
+  const sumOutTotal=sumOutMua+sumOutBan+sumOutSX+sumOutKhac;
+  sumCur=sumOpen+sumIn-sumOutTotal;
+
+  if(template.makho){
+    const m=template.makho;
+    const vals={0:`${m.prefix} (1)`, 5:rn(sumOpen),6:rn(sumOpen), 7:rn(sumInMua),8:rn(sumInTra),9:rn(sumInTP),10:rn(sumInCL),11:rn(sumInKhac),
+      12:rn(sumIn),13:rn(sumIn), 14:rn(sumOutMua),15:rn(sumOutBan),16:rn(sumOutSX),17:rn(sumOutKhac),18:rn(sumOutTotal),19:rn(sumOutTotal),
+      20:rn(sumCur),21:rn(sumCur), 22:rn(sumTransfer)};
+    sheetDataXml+=xBuildRow(m.r, vals, m.styles, m.ht, null);
+  }
+  if(template.tenkho){
+    const t=template.tenkho;
+    const vals={0:`${t.prefix} (${items.length})`, 5:rn(sumOpen),6:rn(sumOpen), 7:rn(sumInMua),8:rn(sumInTra),9:rn(sumInTP),10:rn(sumInCL),11:rn(sumInKhac),
+      12:rn(sumIn),13:rn(sumIn), 14:rn(sumOutMua),15:rn(sumOutBan),16:rn(sumOutSX),17:rn(sumOutKhac),18:rn(sumOutTotal),19:rn(sumOutTotal),
+      20:rn(sumCur),21:rn(sumCur), 22:rn(sumTransfer)};
+    sheetDataXml+=xBuildRow(t.r, vals, t.styles, t.ht, t.outlineLevel);
+  }
+
+  let rowNum=template.dataStartRow;
+  const dr=template.dataRow || {styles:{}, ht:60, outlineLevel:2};
+  items.forEach(it=>{
+    const totalIn=(Number(it.inMua)||0)+(Number(it.inTra)||0)+(Number(it.inTP)||0)+(Number(it.inCL)||0)+(Number(it.inKhac)||0);
+    const totalOut=(Number(it.outMua)||0)+(Number(it.outBan)||0)+(Number(it.outSX)||0)+(Number(it.outKhac)||0);
+    const closing=(Number(it.openingQty)||0)+totalIn-totalOut;
+    const vals={0:it.code,1:it.name||"",2:it.desc||"",3:it.unit||"Cái",4:it.unitMain||it.unit||"Cái",
+      5:rn(it.openingQty),6:rn(it.openingQty),
+      7:rn(it.inMua),8:rn(it.inTra),9:rn(it.inTP),10:rn(it.inCL),11:rn(it.inKhac),12:rn(totalIn),13:rn(totalIn),
+      14:rn(it.outMua),15:rn(it.outBan),16:rn(it.outSX),17:rn(it.outKhac),18:rn(totalOut),19:rn(totalOut),
+      20:rn(closing),21:rn(closing), 22:rn(it.transferPending), 23: it.minQty?rn(it.minQty):null,
+      24:it.group||"",25:it.origin||"",26:it.location||""};
+    sheetDataXml+=xBuildRow(rowNum, vals, dr.styles, dr.ht, dr.outlineLevel);
+    rowNum++;
+  });
+  const totalRowNum=rowNum;
+  if(template.totalRow){
+    const tr=template.totalRow;
+    const vals={0:"Tổng", 5:rn(sumOpen),6:rn(sumOpen), 7:rn(sumInMua),8:rn(sumInTra),9:rn(sumInTP),10:rn(sumInCL),11:rn(sumInKhac),
+      12:rn(sumIn),13:rn(sumIn), 14:rn(sumOutMua),15:rn(sumOutBan),16:rn(sumOutSX),17:rn(sumOutKhac),18:rn(sumOutTotal),19:rn(sumOutTotal),
+      20:rn(sumCur),21:rn(sumCur)};
+    sheetDataXml+=xBuildRow(totalRowNum, vals, tr.styles, tr.ht, null);
+  }
+
+  // 3) Ghep skeleton (cap nhat lai dimension theo so dong moi)
+  const lastRow=template.totalRow? totalRowNum : rowNum-1;
+  let pre=template.skeletonPre.replace(/<dimension ref="[^"]*"\s*\/>/, `<dimension ref="A1:AA${lastRow}"/>`);
+  const sheetXml=pre+"<sheetData>"+sheetDataXml+"</sheetData>"+template.skeletonPost;
+
+  const sheetFileName=(template.sheetPath||"xl/worksheets/sheet1.xml").replace(/^xl\//,"");
+  zip.folder("xl").file(sheetFileName, sheetXml);
+
+  return await zip.generateAsync({type:"blob", mimeType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+}
+async function exportInvAccountingFile(){
+  try{
+    busy(true,"Đang tải khung file mẫu…");
+    const d=await api("getInventoryTemplate");
+    if(!d.template){
+      busy(false);
+      alert("Chưa có khung file mẫu. Vui lòng tải lên 1 lần file Excel gốc (nút Tải Excel của tôi) trước, hệ thống sẽ tự lưu lại khung để dùng cho các lần xuất sau.");
+      return;
+    }
+    document.getElementById("busyText").textContent="Đang dựng lại file Excel…";
+    const blob=await buildAccountingReportXlsx(d.template, INV_ITEMS);
+    dlBlob(blob, "Tong-hop-ton-kho_"+todayStr()+".xlsx");
+    toast("Đã xuất file tồn kho","Giữ nguyên khung, màu sắc, định dạng như file gốc","success");
+  }catch(e){ toast("Lỗi xuất file",esc(e.message),"err"); }
+  finally{ busy(false); }
+}
+
+/* ============================================================
    KIEM TRA MAY CHU
    ============================================================ */
 async function checkServer(){
@@ -2036,13 +2164,14 @@ function viewInventory(){
         <button class="${sub==='log'?'active':''}" onclick="searchTerms.invSub='log';render();">📜 Nhật ký xuất nhập</button>
       </div>
       <div class="toolbar">
-        <button class="btn success" onclick="invTxModal('Nhập')">⬇ Nhập kho</button>
-        <button class="btn danger" onclick="invTxModal('Xuất')">⬆ Xuất kho</button>
+        <button class="btn success" onclick="invBulkTxModal('Nhập')">⬇ Nhập kho (nhiều mã)</button>
+        <button class="btn danger" onclick="invBulkTxModal('Xuất')">⬆ Xuất kho (nhiều mã)</button>
         <button class="btn" onclick="editInvItem()">+ Thêm mã hàng mới</button>
         <div class="spacer"></div>
         <button class="btn" onclick="loadInventory(true)">🔄 Làm mới</button>
         <button class="btn" onclick="exportInvCsv()">Xuất CSV</button>
-        ${isBoss()?`<label class="btn primary" style="cursor:pointer;">📤 Tải Excel của tôi (.xlsx)<input type="file" accept=".xlsx" style="display:none" onchange="importInvExcel(this.files)"></label>
+        <button class="btn primary" onclick="exportInvAccountingFile()">📥 Xuất file tồn kho (giữ nguyên form)</button>
+        ${isBoss()?`<label class="btn" style="cursor:pointer;">📤 Tải Excel của tôi (.xlsx)<input type="file" accept=".xlsx" style="display:none" onchange="importInvExcel(this.files)"></label>
         <label class="btn" style="cursor:pointer;">📥 Nhập seed JSON<input type="file" accept=".json" style="display:none" onchange="importInvSeed(this.files)"></label>`:''}
       </div>
       ${sub==='list'?renderInvList():renderInvLog()}
@@ -2132,6 +2261,63 @@ function renderInvLog(){
     </tbody></table>`:`<div class="empty-state"><div class="icon">📜</div>Chưa có giao dịch nào.</div>`}`;
 }
 function fmtNum(n){ n=Number(n)||0; return n%1===0? n.toLocaleString('vi-VN') : n.toLocaleString('vi-VN',{maximumFractionDigits:2}); }
+
+/* ---- Phieu Nhap/Xuat NHIEU MA HANG cung luc ---- */
+let bulkTxRows=[];
+function invBulkTxModal(type){
+  bulkTxRows=[{code:"",name:"",unit:"Cái",qty:"",note:""}];
+  bulkTxType=type;
+  renderBulkTxModal();
+}
+let bulkTxType="Nhập";
+function renderBulkTxModal(){
+  const type=bulkTxType;
+  const names=INV_ITEMS.map(i=>i.code);
+  openModalHtml(`
+    <h3>${type==='Nhập'?'⬇ PHIẾU NHẬP KHO — NHIỀU MÃ HÀNG':'⬆ PHIẾU XUẤT KHO — NHIỀU MÃ HÀNG'}</h3>
+    <div class="notice info">Thêm nhiều dòng, mỗi dòng 1 mã hàng. Bấm <b>Ghi sổ</b> 1 lần là cập nhật tồn kho + lưu lịch sử cho <b>tất cả các dòng cùng lúc</b>, chung 1 số phiếu.</div>
+    <div class="form-row">
+      <div class="fld full">
+        <label>${type==='Nhập'?'Nhập từ (Nhà cung cấp/Nguồn)':'Xuất đến (Bộ phận/Công trình/Dự án)'} — áp dụng chung cho cả phiếu</label>
+        <input type="text" id="bulk_party" placeholder="${type==='Nhập'?'VD: Cty ABC':'VD: Dự án Máy chiết rót'}"></div>
+      <div class="fld"><label>Người thực hiện</label><input type="text" id="bulk_by" value="${esc(ME.name)}"></div>
+    </div>
+    <table><thead><tr><th style="width:26%;">Mã hàng</th><th>ĐVT</th><th>Số lượng</th><th>Ghi chú</th><th></th></tr></thead><tbody id="bulkTxBody">
+      ${bulkTxRows.map((r,i)=>`<tr>
+        <td data-label="Mã hàng"><input type="text" value="${esc(r.code)}" list="bulkCodeList" oninput="bulkTxRows[${i}].code=this.value;bulkAutoFill(${i})" style="width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:12.5px;"></td>
+        <td data-label="ĐVT"><input type="text" value="${esc(r.unit)}" oninput="bulkTxRows[${i}].unit=this.value" style="width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:12.5px;"></td>
+        <td data-label="SL"><input type="number" value="${esc(r.qty)}" oninput="bulkTxRows[${i}].qty=this.value" style="width:90px;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:12.5px;"></td>
+        <td data-label="Ghi chú"><input type="text" value="${esc(r.note)}" oninput="bulkTxRows[${i}].note=this.value" style="width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:12.5px;"></td>
+        <td data-label=""><button class="btn small danger" onclick="bulkTxRows.splice(${i},1);renderBulkTxModal();">✕</button></td>
+      </tr>`).join("")}
+    </tbody></table>
+    <datalist id="bulkCodeList">${names.map(c=>`<option value="${esc(c)}"></option>`).join("")}</datalist>
+    <button class="btn small" style="margin-top:8px;" onclick="bulkTxRows.push({code:'',name:'',unit:'Cái',qty:'',note:''});renderBulkTxModal();">+ Thêm dòng</button>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Huỷ</button>
+      <button class="btn ${type==='Nhập'?'success':'danger'}" onclick="submitBulkTx()">✓ Ghi sổ ${type} (${bulkTxRows.filter(r=>r.code&&r.qty).length} dòng)</button></div>`);
+}
+function bulkAutoFill(i){
+  const it=findInvItem(bulkTxRows[i].code.trim());
+  if(it){ bulkTxRows[i].unit=it.unit||"Cái"; bulkTxRows[i].name=it.name; }
+}
+async function submitBulkTx(){
+  const lines=bulkTxRows.filter(r=>r.code&&r.code.trim()&&Number(r.qty)>0)
+    .map(r=>({code:r.code.trim(), unit:r.unit.trim()||"Cái", qty:Number(r.qty), note:r.note.trim(), name:r.name}));
+  if(!lines.length){ alert("Chưa có dòng nào hợp lệ (cần đủ mã hàng và số lượng > 0)."); return; }
+  const party=document.getElementById("bulk_party").value.trim();
+  const by=document.getElementById("bulk_by").value.trim()||ME.name;
+  try{
+    busy(true,`Đang ghi sổ ${lines.length} dòng…`);
+    const d=await api("recordInventoryTxBulk",{txType:bulkTxType, lines, party, note:"", docNo:null});
+    (d.items||[]).forEach(it=>{ const i=INV_ITEMS.findIndex(x=>x.code===it.code); if(i>=0) INV_ITEMS[i]=it; else INV_ITEMS.push(it); });
+    (d.logs||[]).forEach(l=>INV_LOGS.push(l));
+    closeModal(); render();
+    const warnMsg=(d.warnings||[]).length? `<br>⚠ ${d.warnings.join("<br>⚠ ")}` : "";
+    toast(`Đã ghi sổ ${bulkTxType} — Phiếu ${d.docNo}`,`${(d.items||[]).length} mã hàng đã cập nhật${warnMsg}`, (d.warnings||[]).length?"warn":"success");
+  }catch(e){ toast("Lỗi ghi sổ",esc(e.message),"err"); }
+  finally{ busy(false); }
+}
 
 /* ---- Phieu Nhap / Xuat kho ---- */
 function invTxModal(type){
@@ -2321,6 +2507,137 @@ function xParseSharedStrings(xml){
   }
   return list;
 }
+/* Doc XML "giau" - giu ca style id moi cell, dung de "nhan ban" khung file goc */
+function xParseSheetRich(xml, sharedStrings){
+  const rows=[];
+  const rowRe=/<row\b([^>]*)>([\s\S]*?)<\/row>/g;
+  let rm;
+  while((rm=rowRe.exec(xml))){
+    const rAttr=rm[1];
+    const rNumM=/\br="(\d+)"/.exec(rAttr);
+    const htM=/\bht="([\d.]+)"/.exec(rAttr);
+    const olM=/\boutlineLevel="(\d+)"/.exec(rAttr);
+    const cells={};
+    const cellRe=/<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;
+    let cm, autoCol=0;
+    while((cm=cellRe.exec(rm[2]))){
+      const attrs=cm[1]||"", inner=cm[2]||"";
+      const refM=/r="([A-Z]+)\d+"/.exec(attrs);
+      const colIdx=refM? xColToIndex(refM[1]) : autoCol;
+      autoCol=colIdx+1;
+      const sM=/\bs="(\d+)"/.exec(attrs);
+      const style=sM? sM[1] : "0";
+      const tM=/t="([^"]+)"/.exec(attrs);
+      const type=tM? tM[1] : null;
+      let value=null;
+      if(type==="inlineStr"){
+        const tMatch=/<t[^>]*>([\s\S]*?)<\/t>/.exec(inner);
+        value=tMatch? xDecodeEntities(tMatch[1]) : "";
+      } else {
+        const vMatch=/<v>([\s\S]*?)<\/v>/.exec(inner);
+        const raw=vMatch? vMatch[1] : "";
+        if(type==="s") value=sharedStrings[parseInt(raw,10)] || "";
+        else if(type==="str"||type==="b") value=raw;
+        else value=raw===""? null : parseFloat(raw);
+      }
+      cells[colIdx]={style, value};
+    }
+    rows.push({ r: rNumM? parseInt(rNumM[1],10) : (rows.length+1),
+      ht: htM? htM[1] : null, outlineLevel: olM? olM[1] : null, cells });
+  }
+  return rows;
+}
+function xColOf(row,idx){ return row.cells[idx]? row.cells[idx].value : null; }
+function xStyleOf(row,idx){ return row.cells[idx]? row.cells[idx].style : "0"; }
+
+/* Nhan dien + "chup" khung file bao cao ke toan (Dau ky / Nhap kho / Xuat kho / Cuoi ky) */
+function xIsAccountingReport(richRows){
+  // Tim dong header chinh: co "Nhập kho" va "Xuất kho" va "Cuối kỳ" cung 1 dong
+  for(const row of richRows){
+    const txt=Object.values(row.cells).map(c=>String(c.value||"")).join("|");
+    if(txt.includes("Nhập kho") && txt.includes("Xuất kho") && txt.includes("Cuối kỳ")) return row.r;
+  }
+  return null;
+}
+function xCaptureAccountingTemplate(rawXml, richRows, headerRowNum){
+  const skelPre=rawXml.slice(0, rawXml.indexOf("<sheetData>"));
+  const skelPost=rawXml.slice(rawXml.indexOf("</sheetData>")+"</sheetData>".length);
+  const mergeM=/<mergeCells\b[^>]*>[\s\S]*?<\/mergeCells>/.exec(skelPost);
+  const colsM=/<cols>[\s\S]*?<\/cols>/.exec(skelPre);
+
+  // Rows truoc header (title/subtitle/blank) + header + subheader: giu nguyen y XML tho tu file goc
+  const rowRe=/<row\b[^>]*>[\s\S]*?<\/row>/g;
+  const rawRowBlocks=rawXml.match(rowRe)||[];
+  const rowBlockByNum={};
+  rawRowBlocks.forEach(b=>{ const m=/\br="(\d+)"/.exec(b); if(m) rowBlockByNum[parseInt(m[1],10)]=b; });
+
+  // Tim dong "Ma kho:" va "Ten kho:" (dong tong hop ngay sau header/subheader)
+  let makhoRow=null, tenkhoRow=null;
+  for(const row of richRows){
+    const a=String(xColOf(row,0)||"");
+    if(a.indexOf("Mã kho")===0) makhoRow=row;
+    else if(a.indexOf("Tên kho")===0) tenkhoRow=row;
+  }
+  const dataStartRow = tenkhoRow? tenkhoRow.r+1 : headerRowNum+2;
+
+  // Dong du lieu dau tien (mau) va dong cuoi cung (dong Tong)
+  const dataRows=richRows.filter(r=>r.r>=dataStartRow);
+  const totalRow=dataRows.length? dataRows[dataRows.length-1] : null;
+  const sampleRow=dataRows.length>1? dataRows[0] : null;
+  const itemRows = totalRow? dataRows.slice(0, dataRows.length-1) : [];
+
+  function styleMap(row){ const m={}; if(!row) return m; for(const k in row.cells) m[k]=row.cells[k].style; return m; }
+  function splitPrefix(text){ const m=/^(.*)\s\(\d+\)\s*$/.exec(text||""); return m? m[1] : (text||""); }
+
+  // Chup rows 1..(headerRowNum+1) (title/subtitle/blank/header/subheader) o dang GIA TRI DA GIAI MA + style,
+  // KHONG dung XML tho (vi XML tho tham chieu shared-strings table cua file goc, se vo nghia neu khong mang theo ca bang)
+  function rowSnapshot(row){
+    if(!row) return null;
+    const cells={};
+    for(const k in row.cells) cells[k]={ style:row.cells[k].style, value:row.cells[k].value };
+    return { r:row.r, ht:row.ht, outlineLevel:row.outlineLevel, cells };
+  }
+  const headerRows=[];
+  for(let n=1;n<=headerRowNum+1;n++){
+    const found=richRows.find(r=>r.r===n);
+    if(found) headerRows.push(rowSnapshot(found));
+  }
+
+  return {
+    skeletonPre: skelPre,
+    skeletonPost: skelPost,
+    mergeCellsXml: mergeM? mergeM[0] : "",
+    colsXml: colsM? colsM[0] : "",
+    headerRows: headerRows,
+    makho: makhoRow? { r:makhoRow.r, ht:makhoRow.ht, styles:styleMap(makhoRow), prefix:splitPrefix(xColOf(makhoRow,0)) } : null,
+    tenkho: tenkhoRow? { r:tenkhoRow.r, ht:tenkhoRow.ht, outlineLevel:tenkhoRow.outlineLevel, styles:styleMap(tenkhoRow), prefix:splitPrefix(xColOf(tenkhoRow,0)) } : null,
+    dataRow: sampleRow? { ht:sampleRow.ht, outlineLevel:sampleRow.outlineLevel, styles:styleMap(sampleRow) } : (itemRows[0]? {ht:itemRows[0].ht, outlineLevel:itemRows[0].outlineLevel, styles:styleMap(itemRows[0])} : null),
+    totalRow: totalRow? { ht:totalRow.ht, styles:styleMap(totalRow) } : null,
+    dataStartRow: dataStartRow,
+    colCount: 27
+  };
+}
+/* Doc danh sach vat tu tu bao cao ke toan (theo VI TRI COT co dinh A..AA) */
+function xMapAccountingItems(richRows, tpl){
+  const items=[];
+  richRows.forEach(row=>{
+    if(row.r < tpl.dataStartRow) return;
+    const code=xColOf(row,0);
+    if(!code || String(code).trim()==="" || String(code).trim()==="Tổng") return;
+    const num=(i)=>{ const v=xColOf(row,i); return typeof v==="number"? v : (Number(v)||0); };
+    items.push({
+      code:String(code).trim(), name:String(xColOf(row,1)||"").trim(), desc:String(xColOf(row,2)||"").trim(),
+      unit:String(xColOf(row,3)||"Cái").trim()||"Cái", unitMain:String(xColOf(row,4)||"").trim(),
+      openingQty:num(5),
+      inMua:num(7), inTra:num(8), inTP:num(9), inCL:num(10), inKhac:num(11), totalIn:num(12),
+      outMua:num(14), outBan:num(15), outSX:num(16), outKhac:num(17), totalOut:num(18),
+      currentQty:num(20), transferPending:num(22), minQty:num(23),
+      group:String(xColOf(row,24)||"").trim(), origin:String(xColOf(row,25)||"").trim(), location:String(xColOf(row,26)||"").trim()
+    });
+  });
+  return items;
+}
+
 function xParseSheetXml(xml, sharedStrings){
   const rows={};
   const rowRe=/<row\b([^>]*)>([\s\S]*?)<\/row>/g;
@@ -2393,12 +2710,20 @@ async function parseXlsxFile(file){
   let sharedStrings=[];
   const ssFile=zip.file("xl/sharedStrings.xml");
   if(ssFile) sharedStrings=xParseSharedStrings(await ssFile.async("string"));
-  const result={};
+  const stylesFile=zip.file("xl/styles.xml");
+  const themeFile=zip.file("xl/theme/theme1.xml");
+  const ctFile=zip.file("[Content_Types].xml");
+  const rootRelsFile=zip.file("_rels/.rels");
+  const result={ sheets:{}, sharedStrings, wbXml, relsXml,
+    stylesXml: stylesFile? await stylesFile.async("string") : "",
+    themeXml: themeFile? await themeFile.async("string") : "",
+    contentTypesXml: ctFile? await ctFile.async("string") : "",
+    rootRelsXml: rootRelsFile? await rootRelsFile.async("string") : "" };
   for(const s of sheets){
     const f=zip.file(s.path);
     if(!f) continue;
     const xml=await f.async("string");
-    result[s.name]=xParseSheetXml(xml, sharedStrings);
+    result.sheets[s.name]={ values: xParseSheetXml(xml, sharedStrings), rawXml: xml, sheetPath: s.path };
   }
   return result;
 }
@@ -2465,49 +2790,137 @@ function xMapLogSheet(rows){
 /* Tai len file Excel that cua nguoi dung -> tu nhan dien danh muc + nhat ky, nhap thang vao he thong */
 async function importInvExcel(fileList){
   const file=fileList[0]; if(!file) return;
-  let sheets;
+  let parsed;
   try{
     busy(true,"Đang đọc file Excel…");
-    sheets=await parseXlsxFile(file);
+    parsed=await parseXlsxFile(file);
   }catch(e){ busy(false); toast("Lỗi đọc file Excel",esc(e.message),"err"); return; }
   busy(false);
 
-  let items=null, logs=null, itemsSheet=null, logsSheet=null;
-  const sheetNames=Object.keys(sheets);
+  const sheetNames=Object.keys(parsed.sheets);
+
+  /* ---- Uu tien 1: nhan dien BAO CAO KE TOAN (Dau ky/Nhap/Xuat/Cuoi ky) ---- */
   for(const name of sheetNames){
-    if(!items){ const r=xMapInventorySheet(sheets[name]); if(r&&r.length){ items=r; itemsSheet=name; continue; } }
-    if(!logs){ const r=xMapLogSheet(sheets[name]); if(r){ logs=r; logsSheet=name; } }
+    const sh=parsed.sheets[name];
+    const rich=xParseSheetRich(sh.rawXml, parsed.sharedStrings);
+    const headerRowNum=xIsAccountingReport(rich);
+    if(headerRowNum){
+      const tpl=xCaptureAccountingTemplate(sh.rawXml, rich, headerRowNum);
+      const items=xMapAccountingItems(rich, tpl);
+      const template={
+        sheetName:name, headerRowNum, skeletonPre:tpl.skeletonPre, skeletonPost:tpl.skeletonPost,
+        mergeCellsXml:tpl.mergeCellsXml, colsXml:tpl.colsXml, headerRows:tpl.headerRows,
+        makho:tpl.makho, tenkho:tpl.tenkho, dataRow:tpl.dataRow, totalRow:tpl.totalRow,
+        dataStartRow:tpl.dataStartRow, colCount:tpl.colCount,
+        sharedStringsXml:'<?xml version="1.0" encoding="UTF-8" standalone="yes"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"></sst>',
+        stylesXml:parsed.stylesXml, themeXml:parsed.themeXml, contentTypesXml:parsed.contentTypesXml,
+        rootRelsXml:parsed.rootRelsXml, workbookXml:parsed.wbXml, workbookRelsXml:parsed.relsXml,
+        sheetPath:sh.sheetPath, capturedAt:new Date().toISOString()
+      };
+      await handleAccountingImport(file.name, items, template);
+      return;
+    }
+  }
+
+  /* ---- Uu tien 2: form don gian cu (TON_KHO / NHAT_KY_XNK) ---- */
+  let items=null, logs=null, itemsSheet=null, logsSheet=null;
+  for(const name of sheetNames){
+    const values=parsed.sheets[name].values;
+    if(!items){ const r=xMapInventorySheet(values); if(r&&r.length){ items=r; itemsSheet=name; continue; } }
+    if(!logs){ const r=xMapLogSheet(values); if(r){ logs=r; logsSheet=name; } }
   }
   if(!items && !logs){
     alert(`Không nhận diện được cấu trúc file trong ${sheetNames.length} sheet (${sheetNames.join(", ")}).\n\n`+
-      `Cần 1 sheet có cột "Mã hàng" + "Tên hàng" (danh mục tồn kho),\n`+
-      `hoặc 1 sheet có cột "Mã hàng" + "Loại (Nhập/Xuất)" (nhật ký xuất nhập).`);
+      `Cần 1 sheet có cột "Mã hàng"+"Tên hàng" (danh mục),\n`+
+      `hoặc "Mã hàng"+"Loại (Nhập/Xuất)" (nhật ký),\n`+
+      `hoặc báo cáo tồn kho dạng Đầu kỳ/Nhập kho/Xuất kho/Cuối kỳ.`);
     return;
   }
   const msg=`Đã đọc file "${esc(file.name)}":\n`+
     (items? `• Danh mục tồn kho (sheet "${itemsSheet}"): ${items.length} mã hàng\n`:"")+
-    (logs? `• Nhật ký xuất nhập (sheet "${logsSheet}"): ${logs.length} giao dịch (cả Nhập lẫn Xuất)\n`:"")+
-    `\nNhập vào hệ thống? (Mã hàng trùng sẽ được cập nhật đè lên, giao dịch trùng ID sẽ bỏ qua)`;
+    (logs? `• Nhật ký xuất nhập (sheet "${logsSheet}"): ${logs.length} giao dịch\n`:"")+
+    `\nNhập vào hệ thống? (Mã hàng trùng sẽ được cập nhật đè lên)`;
   if(!confirm(msg)) return;
-
   try{
     busy(true,"Đang nhập dữ liệu…");
     const CH=200;
-    if(items){
-      for(let i=0;i<items.length;i+=CH){
-        document.getElementById("busyText").textContent=`Đang nhập mã hàng ${Math.min(i+CH,items.length)}/${items.length}…`;
-        await api("bulkImportInventory",{items:items.slice(i,i+CH)});
-      }
-    }
-    if(logs){
-      for(let i=0;i<logs.length;i+=CH){
-        document.getElementById("busyText").textContent=`Đang nhập giao dịch ${Math.min(i+CH,logs.length)}/${logs.length}…`;
-        await api("bulkImportInvLog",{logs:logs.slice(i,i+CH)});
-      }
-    }
+    if(items) for(let i=0;i<items.length;i+=CH) await api("bulkImportInventory",{items:items.slice(i,i+CH)});
+    if(logs) for(let i=0;i<logs.length;i+=CH) await api("bulkImportInvLog",{logs:logs.slice(i,i+CH)});
     await loadInventory(false);
-    toast("Đã nhập từ Excel",
-      `${items?items.length+' mã hàng':''}${items&&logs?' · ':''}${logs?logs.length+' giao dịch':''}`,"success");
+    toast("Đã nhập từ Excel",`${items?items.length+' mã hàng':''}${items&&logs?' · ':''}${logs?logs.length+' giao dịch':''}`,"success");
+  }catch(e){ toast("Lỗi nhập dữ liệu",esc(e.message),"err"); }
+  finally{ busy(false); }
+}
+
+/* ---- Xu ly rieng cho file bao cao ke toan: doi chieu + luu khung ---- */
+let RECON_STATE=null;
+async function handleAccountingImport(fileName, fileItems, template){
+  const known={}; INV_ITEMS.forEach(it=>known[it.code]=it);
+  const brandNew=[], changed=[], same=[];
+  fileItems.forEach(fi=>{
+    const cur=known[fi.code];
+    if(!cur){ brandNew.push(fi); return; }
+    if(Number(cur.currentQty)!==Number(fi.currentQty)) changed.push({file:fi, app:cur});
+    else same.push(fi);
+  });
+  RECON_STATE={ fileName, fileItems, template, brandNew, changed, same, choices:{} };
+  changed.forEach(c=>RECON_STATE.choices[c.file.code]="file");
+  openInvReconcile();
+}
+function openInvReconcile(){
+  const st=RECON_STATE; if(!st) return;
+  openModalHtml(`
+    <h3>Đối chiếu tồn kho — "${esc(st.fileName)}"</h3>
+    <div class="grid-kpi" style="margin-bottom:12px;">
+      <div class="kpi-box"><div class="num">${st.fileItems.length}</div><div class="lbl">Tổng mã trong file</div></div>
+      <div class="kpi-box ok"><div class="num">${st.brandNew.length}</div><div class="lbl">Mã hàng mới</div></div>
+      <div class="kpi-box mid"><div class="num">${st.changed.length}</div><div class="lbl">Lệch số tồn</div></div>
+      <div class="kpi-box"><div class="num">${st.same.length}</div><div class="lbl">Khớp sẵn</div></div>
+    </div>
+    ${st.brandNew.length?`<div class="notice info">${st.brandNew.length} mã hàng mới (chưa có trong app) sẽ được <b>tự động thêm</b>, không cần chọn.</div>`:''}
+    ${st.changed.length?`<div class="notice"><b>${st.changed.length} mã hàng có số tồn khác nhau</b> giữa file và app — anh chọn dùng số nào cho từng mã, hoặc áp dụng hàng loạt:
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn small primary" onclick="reconSetAll('file')">Tất cả theo FILE</button>
+        <button class="btn small" onclick="reconSetAll('app')">Tất cả GIỮ NGUYÊN app</button>
+      </div></div>
+      <table><thead><tr><th>Mã hàng</th><th>Tên hàng</th><th>Tồn trong file</th><th>Tồn trong app</th><th>Chọn dùng</th></tr></thead><tbody>
+      ${st.changed.map(c=>`<tr>
+        <td data-label="Mã hàng"><b>${esc(c.file.code)}</b></td>
+        <td data-label="Tên hàng">${esc((c.file.name||c.app.name||'').slice(0,45))}</td>
+        <td data-label="Tồn file"><b style="color:var(--accent-dark);">${fmtNum(c.file.currentQty)}</b> ${esc(c.file.unit||'')}</td>
+        <td data-label="Tồn app"><b>${fmtNum(c.app.currentQty)}</b> ${esc(c.app.unit||'')}</td>
+        <td data-label="Chọn"><select onchange="RECON_STATE.choices['${esc(c.file.code)}']=this.value" style="padding:5px 8px;border:1px solid var(--border);border-radius:7px;font-size:12px;">
+          <option value="file" ${st.choices[c.file.code]==='file'?'selected':''}>Dùng số FILE</option>
+          <option value="app" ${st.choices[c.file.code]==='app'?'selected':''}>Giữ số APP</option>
+        </select></td>
+      </tr>`).join("")}
+      </tbody></table>`:`<div class="notice ok">Không có mã hàng nào lệch số — an toàn để nhập.</div>`}
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal();RECON_STATE=null;">Huỷ</button>
+      <button class="btn primary" onclick="applyInvReconcile()">✓ Xác nhận nhập ${st.fileItems.length} mã hàng</button></div>`);
+}
+function reconSetAll(v){ if(!RECON_STATE) return; RECON_STATE.changed.forEach(c=>RECON_STATE.choices[c.file.code]=v); openInvReconcile(); }
+async function applyInvReconcile(){
+  const st=RECON_STATE; if(!st) return;
+  const finalItems=[];
+  st.brandNew.forEach(fi=>finalItems.push(fi));
+  st.same.forEach(fi=>finalItems.push(fi));
+  st.changed.forEach(c=>{ if(st.choices[c.file.code]!=="app") finalItems.push(c.file); /* neu chon 'app' thi bo qua, giu nguyen ban ghi app hien co */ });
+  try{
+    busy(true,"Đang nhập dữ liệu…");
+    const CH=150;
+    for(let i=0;i<finalItems.length;i+=CH){
+      document.getElementById("busyText").textContent=`Đang nhập mã hàng ${Math.min(i+CH,finalItems.length)}/${finalItems.length}…`;
+      await api("bulkImportInventory",{items:finalItems.slice(i,i+CH)});
+    }
+    document.getElementById("busyText").textContent="Đang lưu khung file mẫu…";
+    await api("saveInventoryTemplate",{template:st.template});
+    await loadInventory(false);
+    closeModal();
+    const skipped=st.changed.length - st.changed.filter(c=>st.choices[c.file.code]!=="app").length;
+    toast("Đã đối chiếu & nhập dữ liệu",
+      `${st.brandNew.length} mã mới · ${finalItems.length-st.brandNew.length} cập nhật${skipped?` · ${skipped} giữ nguyên theo app`:''}`,"success");
+    RECON_STATE=null;
   }catch(e){ toast("Lỗi nhập dữ liệu",esc(e.message),"err"); }
   finally{ busy(false); }
 }
