@@ -292,7 +292,7 @@
 /* ============================================================
    CAU HINH & TRANG THAI
    ============================================================ */
-const APP_VERSION = "5.0";
+const APP_VERSION = "5.1";
 const NEED_BACKEND = 6;   // Phien ban backend toi thieu
 let BACKEND_VER = null;
 let BACKEND_FAIL = null;   // ten lenh bi may chu tu choi
@@ -2134,6 +2134,19 @@ async function loadInventory(showT){
   finally{ invLoading=false; render(); }
 }
 function invLow(it){ return Number(it.minQty)>0 && Number(it.currentQty)<Number(it.minQty); }
+/* Muc ton kho: 'out' = het hang (<=0), 'low' = duoi muc toi thieu, 'ok' = binh thuong */
+function invStockLevel(it){
+  const cur=Number(it.currentQty)||0;
+  if(cur<=0) return "out";
+  if(Number(it.minQty)>0 && cur<Number(it.minQty)) return "low";
+  return "ok";
+}
+function invStockBadge(it){
+  const lv=invStockLevel(it);
+  if(lv==="out") return `<span class="badge crit" style="font-size:11px;">HẾT HÀNG</span>`;
+  if(lv==="low") return `<span class="badge crit">CẦN NHẬP THÊM</span>`;
+  return "";
+}
 function invChanged(it){ return Number(it.currentQty)!==Number(it.openingQty); }
 function findInvItem(code){ return INV_ITEMS.find(x=>x.code===code); }
 
@@ -2214,15 +2227,16 @@ function renderInvList(){
     <div class="detail-row" style="margin-bottom:8px;">Hiển thị ${list.length}/${INV_ITEMS.length} mã hàng</div>
     ${list.length?`<table><thead><tr><th>Mã hàng</th><th>Tên hàng</th><th>Nhóm</th><th>Vị trí</th><th>Tồn hiện tại</th><th>Tồn tối thiểu</th><th></th></tr></thead><tbody>
       ${list.map(it=>{
-        const low=invLow(it), chg=invChanged(it);
-        return `<tr class="${low?'row-warn':''}" style="${!low&&chg?'background:#fffef2;':''}">
+        const lv=invStockLevel(it), chg=invChanged(it);
+        const isBad=lv==="out"||lv==="low";
+        return `<tr class="${isBad?'row-warn':''}" style="${!isBad&&chg?'background:#fffef2;':''}">
           <td data-label="Mã hàng"><b>${esc(it.code)}</b></td>
           <td data-label="Tên hàng">${esc(it.name)}${it.desc?`<div class="detail-row">${esc(it.desc.slice(0,60))}</div>`:''}</td>
           <td data-label="Nhóm">${it.group?`<span class="badge approved">${esc(it.group)}</span>`:'—'}</td>
           <td data-label="Vị trí">${esc(it.location||'—')}</td>
-          <td data-label="Tồn hiện tại"><b style="font-size:14px;${low?'color:var(--red);':''}">${fmtNum(it.currentQty)}</b> ${esc(it.unit||'')}</td>
+          <td data-label="Tồn hiện tại"><b style="font-size:${lv==='out'?'16px':'14px'};${isBad?'color:var(--red);':''}">${fmtNum(it.currentQty)}</b> ${esc(it.unit||'')}</td>
           <td data-label="Tồn tối thiểu">${it.minQty?fmtNum(it.minQty)+' '+esc(it.unit||''):'—'}
-            ${low?`<span class="badge crit">CẦN NHẬP THÊM</span>`:''}</td>
+            ${invStockBadge(it)}</td>
           <td data-label=""><button class="btn small" onclick="viewInvItem('${esc(it.code)}')">Chi tiết</button></td>
         </tr>`;
       }).join("")}
@@ -2272,30 +2286,84 @@ function invBulkTxModal(type){
 let bulkTxType="Nhập";
 function renderBulkTxModal(){
   const type=bulkTxType;
-  const names=INV_ITEMS.map(i=>i.code);
   openModalHtml(`
     <h3>${type==='Nhập'?'⬇ PHIẾU NHẬP KHO — NHIỀU MÃ HÀNG':'⬆ PHIẾU XUẤT KHO — NHIỀU MÃ HÀNG'}</h3>
-    <div class="notice info">Thêm nhiều dòng, mỗi dòng 1 mã hàng. Bấm <b>Ghi sổ</b> 1 lần là cập nhật tồn kho + lưu lịch sử cho <b>tất cả các dòng cùng lúc</b>, chung 1 số phiếu.</div>
+    <div class="notice info">Gõ <b>mã hàng hoặc tên hàng</b> để tìm — không nhớ mã vẫn tìm được. Thêm nhiều dòng, bấm <b>Ghi sổ</b> 1 lần là cập nhật tồn kho + lưu lịch sử cho tất cả các dòng, chung 1 số phiếu.</div>
     <div class="form-row">
       <div class="fld full">
         <label>${type==='Nhập'?'Nhập từ (Nhà cung cấp/Nguồn)':'Xuất đến (Bộ phận/Công trình/Dự án)'} — áp dụng chung cho cả phiếu</label>
         <input type="text" id="bulk_party" placeholder="${type==='Nhập'?'VD: Cty ABC':'VD: Dự án Máy chiết rót'}"></div>
       <div class="fld"><label>Người thực hiện</label><input type="text" id="bulk_by" value="${esc(ME.name)}"></div>
     </div>
-    <table><thead><tr><th style="width:26%;">Mã hàng</th><th>ĐVT</th><th>Số lượng</th><th>Ghi chú</th><th></th></tr></thead><tbody id="bulkTxBody">
-      ${bulkTxRows.map((r,i)=>`<tr>
-        <td data-label="Mã hàng"><input type="text" value="${esc(r.code)}" list="bulkCodeList" oninput="bulkTxRows[${i}].code=this.value;bulkAutoFill(${i})" style="width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:12.5px;"></td>
+    <table><thead><tr><th style="width:30%;">Mã hàng / Tên hàng</th><th>ĐVT</th><th>Số lượng</th><th>Ghi chú</th><th></th></tr></thead><tbody id="bulkTxBody">
+      ${bulkTxRows.map((r,i)=>{
+        const it=r.code? findInvItem(r.code.trim()) : null;
+        return `<tr>
+        <td data-label="Mã hàng / Tên hàng" style="position:relative;">
+          <input type="text" id="bulkCodeInput_${i}" value="${esc(r.code)}" placeholder="Gõ mã hoặc tên hàng…"
+            oninput="bulkSearchInput(${i},this.value)"
+            onblur="setTimeout(()=>{const b=document.getElementById('bulkSuggest_${i}');if(b)b.style.display='none';},180)"
+            onfocus="bulkSearchInput(${i},this.value)"
+            style="width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:12.5px;">
+          <div id="bulkSuggest_${i}" style="display:none;position:absolute;z-index:50;top:100%;left:0;right:0;
+            background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-lg);
+            max-height:220px;overflow-y:auto;margin-top:2px;"></div>
+          <div id="bulkStock_${i}" style="font-size:11px;color:var(--text-light);margin-top:3px;">
+            ${it?`Tồn: <b style="${invStockLevel(it)!=='ok'?'color:var(--red);':''}">${fmtNum(it.currentQty)}</b> ${esc(it.unit||'')} ${invStockBadge(it)}`:''}
+          </div>
+        </td>
         <td data-label="ĐVT"><input type="text" value="${esc(r.unit)}" oninput="bulkTxRows[${i}].unit=this.value" style="width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:12.5px;"></td>
         <td data-label="SL"><input type="number" value="${esc(r.qty)}" oninput="bulkTxRows[${i}].qty=this.value" style="width:90px;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:12.5px;"></td>
         <td data-label="Ghi chú"><input type="text" value="${esc(r.note)}" oninput="bulkTxRows[${i}].note=this.value" style="width:100%;padding:6px;border:1px solid var(--border);border-radius:6px;font-size:12.5px;"></td>
         <td data-label=""><button class="btn small danger" onclick="bulkTxRows.splice(${i},1);renderBulkTxModal();">✕</button></td>
-      </tr>`).join("")}
+      </tr>`;}).join("")}
     </tbody></table>
-    <datalist id="bulkCodeList">${names.map(c=>`<option value="${esc(c)}"></option>`).join("")}</datalist>
     <button class="btn small" style="margin-top:8px;" onclick="bulkTxRows.push({code:'',name:'',unit:'Cái',qty:'',note:''});renderBulkTxModal();">+ Thêm dòng</button>
     <div class="modal-actions">
       <button class="btn" onclick="closeModal()">Huỷ</button>
       <button class="btn ${type==='Nhập'?'success':'danger'}" onclick="submitBulkTx()">✓ Ghi sổ ${type} (${bulkTxRows.filter(r=>r.code&&r.qty).length} dòng)</button></div>`);
+}
+/* Tim theo MA HANG hoac TEN HANG, hien goi y ngay ben duoi o nhap */
+function bulkSearchInput(i, val){
+  bulkTxRows[i].code=val;
+  const box=document.getElementById("bulkSuggest_"+i);
+  if(!box) return;
+  const term=val.trim().toLowerCase();
+  if(!term){ box.style.display="none"; return; }
+  const matches=INV_ITEMS.filter(it=>
+    it.code.toLowerCase().includes(term) || (it.name||"").toLowerCase().includes(term)
+  ).slice(0,8);
+  if(!matches.length){
+    box.innerHTML=`<div style="padding:9px 11px;color:var(--text-light);font-size:12px;">Không tìm thấy mã/tên phù hợp</div>`;
+    box.style.display="block"; return;
+  }
+  box.innerHTML=matches.map(it=>{
+    const lv=invStockLevel(it);
+    return `<div data-i="${i}" data-code="${esc(it.code)}" onmousedown="bulkPick(this)"
+      style="padding:8px 11px;cursor:pointer;border-bottom:1px solid var(--border);font-size:12.5px;">
+      <b>${esc(it.code)}</b> — ${esc((it.name||"").slice(0,55))}
+      <div style="font-size:11px;color:${lv!=='ok'?'var(--red)':'var(--text-light)'};font-weight:${lv!=='ok'?'800':'400'};margin-top:2px;">
+        Tồn: ${fmtNum(it.currentQty)} ${esc(it.unit||'')}${lv==='out'?' — HẾT HÀNG':(lv==='low'?' — dưới mức tối thiểu':'')}
+      </div></div>`;
+  }).join("");
+  box.style.display="block";
+}
+function bulkPick(el){
+  const i=Number(el.dataset.i), code=el.dataset.code;
+  const it=findInvItem(code);
+  bulkTxRows[i].code=code;
+  const inp=document.getElementById("bulkCodeInput_"+i);
+  if(inp) inp.value=code;
+  const box=document.getElementById("bulkSuggest_"+i);
+  if(box) box.style.display="none";
+  if(it){
+    bulkTxRows[i].unit=it.unit||"Cái"; bulkTxRows[i].name=it.name;
+    const stockEl=document.getElementById("bulkStock_"+i);
+    if(stockEl) stockEl.innerHTML=`Tồn: <b style="${invStockLevel(it)!=='ok'?'color:var(--red);':''}">${fmtNum(it.currentQty)}</b> ${esc(it.unit||'')} ${invStockBadge(it)}`;
+    // dien lai o DVT tren cung dong (input thu 2 trong <tr>)
+    const row=inp? inp.closest("tr") : null;
+    if(row){ const unitInput=row.querySelectorAll("input")[1]; if(unitInput) unitInput.value=it.unit||"Cái"; }
+  }
 }
 function bulkAutoFill(i){
   const it=findInvItem(bulkTxRows[i].code.trim());
@@ -2312,11 +2380,34 @@ async function submitBulkTx(){
     const d=await api("recordInventoryTxBulk",{txType:bulkTxType, lines, party, note:"", docNo:null});
     (d.items||[]).forEach(it=>{ const i=INV_ITEMS.findIndex(x=>x.code===it.code); if(i>=0) INV_ITEMS[i]=it; else INV_ITEMS.push(it); });
     (d.logs||[]).forEach(l=>INV_LOGS.push(l));
-    closeModal(); render();
-    const warnMsg=(d.warnings||[]).length? `<br>⚠ ${d.warnings.join("<br>⚠ ")}` : "";
-    toast(`Đã ghi sổ ${bulkTxType} — Phiếu ${d.docNo}`,`${(d.items||[]).length} mã hàng đã cập nhật${warnMsg}`, (d.warnings||[]).length?"warn":"success");
+    render();   // Danh muc kho cap nhat ngay, mau do/badge tu dong theo INV_ITEMS moi
+    showBulkTxResult(d.docNo, bulkTxType, lines, d.items||[], d.warnings||[]);
   }catch(e){ toast("Lỗi ghi sổ",esc(e.message),"err"); }
   finally{ busy(false); }
+}
+/* Man hinh ket qua sau khi ghi so: liet ke tung ma hang + ton con lai, TO DO neu het/thap */
+function showBulkTxResult(docNo, type, lines, items, warnings){
+  const byCode={}; items.forEach(it=>byCode[it.code]=it);
+  openModalHtml(`
+    <h3>✓ Đã ghi sổ ${esc(type)} — Phiếu ${esc(docNo)}</h3>
+    ${warnings.length?`<div class="notice danger">${warnings.map(w=>esc(w)).join("<br>")}</div>`:`<div class="notice ok">Đã cập nhật tồn kho cho ${items.length} mã hàng.</div>`}
+    <table><thead><tr><th>Mã hàng</th><th>Tên hàng</th><th>SL ${type==='Nhập'?'đã nhập':'đã xuất'}</th><th>Tồn còn lại</th></tr></thead><tbody>
+      ${lines.map(ln=>{
+        const it=byCode[ln.code]; if(!it) return "";
+        const lv=invStockLevel(it);
+        const bad=lv!=="ok";
+        return `<tr ${bad?'style="background:var(--red-bg);"':''}>
+          <td data-label="Mã hàng"><b>${esc(it.code)}</b></td>
+          <td data-label="Tên hàng">${esc(it.name||'')}</td>
+          <td data-label="SL">${fmtNum(ln.qty)} ${esc(ln.unit||'')}</td>
+          <td data-label="Tồn còn lại">
+            <b style="font-size:${lv==='out'?'17px':'14px'};${bad?'color:var(--red);':''}">${fmtNum(it.currentQty)}</b> ${esc(it.unit||'')}
+            ${invStockBadge(it)}
+          </td>
+        </tr>`;
+      }).join("")}
+    </tbody></table>
+    <div class="modal-actions"><button class="btn primary" onclick="closeModal();">Đóng</button></div>`);
 }
 
 /* ---- Phieu Nhap / Xuat kho ---- */
@@ -2348,7 +2439,7 @@ function invAutoFill(){
   if(it){
     document.getElementById("tx_name").value=it.name;
     document.getElementById("tx_unit").value=it.unit||"Cái";
-    if(wrap){ wrap.style.display="block"; cur.innerHTML=`Tồn hiện tại: <b>${fmtNum(it.currentQty)} ${esc(it.unit||'')}</b>${invLow(it)?' <span class="badge crit">Dưới mức tối thiểu</span>':''}`; }
+    if(wrap){ wrap.style.display="block"; cur.innerHTML=`Tồn hiện tại: <b style="${invStockLevel(it)!=='ok'?'color:var(--red);':''}">${fmtNum(it.currentQty)} ${esc(it.unit||'')}</b> ${invStockBadge(it)}`; }
   } else if(wrap){ wrap.style.display="none"; }
 }
 async function submitInvTx(type){
@@ -2387,7 +2478,7 @@ function viewInvItem(code){
   const it=findInvItem(code); if(!it) return;
   const logs=INV_LOGS.filter(l=>l.code===code).sort((a,b)=>String(b.at||"").localeCompare(String(a.at||"")));
   openModalHtml(`
-    <h3>${esc(it.code)} ${invLow(it)?'<span class="badge crit">CẦN NHẬP THÊM</span>':''}</h3>
+    <h3>${esc(it.code)} ${invStockBadge(it)}</h3>
     <div class="metric-grid" style="margin-bottom:12px;">
       <div class="metric-cell"><div class="mv">${fmtNum(it.currentQty)}</div><div class="ml">Tồn hiện tại (${esc(it.unit||'')})</div></div>
       <div class="metric-cell"><div class="mv">${fmtNum(it.totalIn)}</div><div class="ml">Tổng nhập</div></div>
