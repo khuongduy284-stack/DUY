@@ -292,7 +292,7 @@
 /* ============================================================
    CAU HINH & TRANG THAI
    ============================================================ */
-const APP_VERSION = "4.1";
+const APP_VERSION = "4.2";
 const NEED_BACKEND = 5;   // Phien ban backend toi thieu
 let BACKEND_VER = null;
 let BACKEND_FAIL = null;   // ten lenh bi may chu tu choi
@@ -599,6 +599,7 @@ function render(){
   else if(activeTab==="mywork") m.innerHTML=oldInner(viewMyWork());
   else if(activeTab==="files") m.innerHTML=oldInner(viewFiles());
   else if(activeTab==="props") m.innerHTML=oldInner(viewProps());
+  else if(activeTab==="inv") m.innerHTML=oldInner(viewInventory());
   else if(activeTab==="reports") m.innerHTML=oldInner(viewReports());
   else if(activeTab==="staff") m.innerHTML=oldInner(viewStaff());
   else if(activeTab==="users") m.innerHTML=oldInner(viewUsers());
